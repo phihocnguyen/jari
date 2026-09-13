@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Workspaces")
+@Tag(name = "Workspaces", description = "Endpoints for managing workspaces and their members")
 @RestController
 @RequestMapping("/api/v1/workspaces")
 @RequiredArgsConstructor
@@ -24,69 +24,69 @@ public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
 
-    @Operation(summary = "Create workspace")
+    @Operation(summary = "Create workspace", description = "Creates a new workspace with the authenticated user as the owner and admin.")
     @PostMapping
-    public ResponseEntity<ApiResponse<WorkspaceResponse>> create(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<WorkspaceResponse>> create(
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody CreateWorkspaceRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(workspaceService.create(user.getId(), req)));
+            .body(com.example.jari.shared.response.ApiResponse.ok(workspaceService.create(user.getId(), req)));
     }
 
-    @Operation(summary = "List my workspaces")
+    @Operation(summary = "List my workspaces", description = "Returns a list of workspaces the authenticated user is a member of.")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<WorkspaceResponse>>> list(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<WorkspaceResponse>>> list(
             @AuthenticationPrincipal CustomUserDetails user) {
-        return ResponseEntity.ok(ApiResponse.ok(workspaceService.listMyWorkspaces(user.getId())));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(workspaceService.listMyWorkspaces(user.getId())));
     }
 
-    @Operation(summary = "Get workspace by id")
+    @Operation(summary = "Get workspace by ID", description = "Returns details of a specific workspace.")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<WorkspaceResponse>> get(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(workspaceService.get(id)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<WorkspaceResponse>> get(@PathVariable UUID id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(workspaceService.get(id)));
     }
 
-    @Operation(summary = "Update workspace")
+    @Operation(summary = "Update workspace", description = "Updates a workspace's name and description. Requires workspace admin privileges.")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<WorkspaceResponse>> update(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<WorkspaceResponse>> update(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateWorkspaceRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(workspaceService.update(user.getId(), id, req)));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(workspaceService.update(user.getId(), id, req)));
     }
 
-    @Operation(summary = "Delete workspace")
+    @Operation(summary = "Delete workspace", description = "Deletes a workspace. Only the workspace owner can perform this action.")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable UUID id) {
         workspaceService.delete(user.getId(), id);
-        return ResponseEntity.ok(ApiResponse.ok("Workspace deleted"));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Workspace deleted"));
     }
 
-    @Operation(summary = "List workspace members")
+    @Operation(summary = "List workspace members", description = "Returns all members of a workspace.")
     @GetMapping("/{id}/members")
-    public ResponseEntity<ApiResponse<List<WorkspaceMemberResponse>>> listMembers(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(workspaceService.listMembers(id)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<WorkspaceMemberResponse>>> listMembers(@PathVariable UUID id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(workspaceService.listMembers(id)));
     }
 
-    @Operation(summary = "Invite member to workspace")
+    @Operation(summary = "Invite member to workspace", description = "Adds a user to the workspace with a specific role. Requires workspace admin privileges.")
     @PostMapping("/{id}/members")
-    public ResponseEntity<ApiResponse<WorkspaceMemberResponse>> addMember(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<WorkspaceMemberResponse>> addMember(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable UUID id,
             @Valid @RequestBody InviteMemberRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(workspaceService.addMember(user.getId(), id, req)));
+            .body(com.example.jari.shared.response.ApiResponse.ok(workspaceService.addMember(user.getId(), id, req)));
     }
 
-    @Operation(summary = "Remove member from workspace")
+    @Operation(summary = "Remove member from workspace", description = "Removes a user from the workspace. Requires workspace admin privileges.")
     @DeleteMapping("/{id}/members/{userId}")
-    public ResponseEntity<ApiResponse<Void>> removeMember(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> removeMember(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable UUID id,
             @PathVariable UUID userId) {
         workspaceService.removeMember(user.getId(), id, userId);
-        return ResponseEntity.ok(ApiResponse.ok("Member removed"));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Member removed"));
     }
 }

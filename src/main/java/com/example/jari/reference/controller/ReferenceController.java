@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Tag(name = "Reference Data", description = "Read-only lookup data")
+@Tag(name = "Reference Data", description = "Endpoints for retrieving read-only lookup data (issue types, statuses, priorities)")
 @RestController
 @RequestMapping("/api/v1/ref")
 @RequiredArgsConstructor
@@ -21,21 +21,21 @@ public class ReferenceController {
 
     private final ReferenceService referenceService;
 
-    @Operation(summary = "Get all issue types")
+    @Operation(summary = "Get all issue types", description = "Returns the list of available issue types (e.g., Epic, Story, Task, Bug).")
     @GetMapping("/issue-types")
-    public ResponseEntity<ApiResponse<List<ReferenceItemResponse>>> getIssueTypes() {
-        return ResponseEntity.ok(ApiResponse.ok(referenceService.getIssueTypes()));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<ReferenceItemResponse>>> getIssueTypes() {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(referenceService.getIssueTypes()));
     }
 
-    @Operation(summary = "Get all statuses")
+    @Operation(summary = "Get all statuses", description = "Returns the list of all available statuses, including their category (TODO, IN_PROGRESS, DONE).")
     @GetMapping("/statuses")
-    public ResponseEntity<ApiResponse<List<ReferenceItemResponse>>> getStatuses() {
-        return ResponseEntity.ok(ApiResponse.ok(referenceService.getStatuses()));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<ReferenceItemResponse>>> getStatuses() {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(referenceService.getStatuses()));
     }
 
-    @Operation(summary = "Get all priorities")
+    @Operation(summary = "Get all priorities", description = "Returns the list of available priorities, ordered by level from highest to lowest.")
     @GetMapping("/priorities")
-    public ResponseEntity<ApiResponse<List<ReferenceItemResponse>>> getPriorities() {
-        return ResponseEntity.ok(ApiResponse.ok(referenceService.getPriorities()));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<ReferenceItemResponse>>> getPriorities() {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(referenceService.getPriorities()));
     }
 }

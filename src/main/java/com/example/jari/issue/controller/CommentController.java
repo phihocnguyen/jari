@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Comments")
+@Tag(name = "Comments", description = "Endpoints for managing comments on issues")
 @RestController
 @RequestMapping("/api/v1/issues/{issueId}/comments")
 @RequiredArgsConstructor
@@ -25,39 +25,39 @@ public class CommentController {
 
     private final CommentService commentService;
 
-    @Operation(summary = "List comments for issue")
+    @Operation(summary = "List comments for issue", description = "Returns all active (non-deleted) comments for a given issue, ordered chronologically.")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CommentResponse>>> list(@PathVariable UUID issueId) {
-        return ResponseEntity.ok(ApiResponse.ok(commentService.list(issueId)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<CommentResponse>>> list(@PathVariable UUID issueId) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(commentService.list(issueId)));
     }
 
-    @Operation(summary = "Create comment")
+    @Operation(summary = "Create comment", description = "Adds a new comment to an issue.")
     @PostMapping
-    public ResponseEntity<ApiResponse<CommentResponse>> create(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<CommentResponse>> create(
             @PathVariable UUID issueId,
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody CommentRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(commentService.create(issueId, user.getId(), req)));
+            .body(com.example.jari.shared.response.ApiResponse.ok(commentService.create(issueId, user.getId(), req)));
     }
 
-    @Operation(summary = "Update comment")
+    @Operation(summary = "Update comment", description = "Updates an existing comment. Only the author can perform this action.")
     @PutMapping("/{commentId}")
-    public ResponseEntity<ApiResponse<CommentResponse>> update(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<CommentResponse>> update(
             @PathVariable UUID issueId,
             @PathVariable UUID commentId,
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody CommentRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(commentService.update(commentId, user.getId(), req)));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(commentService.update(commentId, user.getId(), req)));
     }
 
-    @Operation(summary = "Delete comment (soft)")
+    @Operation(summary = "Delete comment", description = "Soft-deletes a comment. Only the author can perform this action.")
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<ApiResponse<Void>> delete(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(
             @PathVariable UUID issueId,
             @PathVariable UUID commentId,
             @AuthenticationPrincipal CustomUserDetails user) {
         commentService.delete(commentId, user.getId());
-        return ResponseEntity.ok(ApiResponse.ok("Comment deleted"));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Comment deleted"));
     }
 }

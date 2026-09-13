@@ -16,68 +16,68 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Projects")
+@Tag(name = "Projects", description = "Endpoints for managing projects and project members within a workspace")
 @RestController
 @RequiredArgsConstructor
 public class ProjectController {
 
     private final ProjectService projectService;
 
-    @Operation(summary = "Create project in workspace")
+    @Operation(summary = "Create project in workspace", description = "Creates a new project within a specific workspace. The user creating it becomes a project admin.")
     @PostMapping("/api/v1/workspaces/{workspaceId}/projects")
-    public ResponseEntity<ApiResponse<ProjectResponse>> create(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectResponse>> create(
             @PathVariable UUID workspaceId,
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody CreateProjectRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(projectService.create(workspaceId, user.getId(), req)));
+            .body(com.example.jari.shared.response.ApiResponse.ok(projectService.create(workspaceId, user.getId(), req)));
     }
 
-    @Operation(summary = "List projects in workspace")
+    @Operation(summary = "List projects in workspace", description = "Returns all projects belonging to a specific workspace.")
     @GetMapping("/api/v1/workspaces/{workspaceId}/projects")
-    public ResponseEntity<ApiResponse<List<ProjectResponse>>> list(@PathVariable UUID workspaceId) {
-        return ResponseEntity.ok(ApiResponse.ok(projectService.listByWorkspace(workspaceId)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<ProjectResponse>>> list(@PathVariable UUID workspaceId) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.listByWorkspace(workspaceId)));
     }
 
-    @Operation(summary = "Get project")
+    @Operation(summary = "Get project", description = "Returns details of a specific project by its ID.")
     @GetMapping("/api/v1/projects/{id}")
-    public ResponseEntity<ApiResponse<ProjectResponse>> get(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(projectService.get(id)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectResponse>> get(@PathVariable UUID id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.get(id)));
     }
 
-    @Operation(summary = "Update project")
+    @Operation(summary = "Update project", description = "Updates project details such as name, description, lead, and status.")
     @PutMapping("/api/v1/projects/{id}")
-    public ResponseEntity<ApiResponse<ProjectResponse>> update(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectResponse>> update(
             @PathVariable UUID id, @Valid @RequestBody UpdateProjectRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(projectService.update(id, req)));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.update(id, req)));
     }
 
-    @Operation(summary = "Delete project")
+    @Operation(summary = "Delete project", description = "Deletes a project permanently.")
     @DeleteMapping("/api/v1/projects/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(@PathVariable UUID id) {
         projectService.delete(id);
-        return ResponseEntity.ok(ApiResponse.ok("Project deleted"));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Project deleted"));
     }
 
-    @Operation(summary = "List project members")
+    @Operation(summary = "List project members", description = "Returns all members assigned to a specific project.")
     @GetMapping("/api/v1/projects/{id}/members")
-    public ResponseEntity<ApiResponse<List<ProjectMemberResponse>>> listMembers(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(projectService.listMembers(id)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<ProjectMemberResponse>>> listMembers(@PathVariable UUID id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.listMembers(id)));
     }
 
-    @Operation(summary = "Add member to project")
+    @Operation(summary = "Add member to project", description = "Adds a user to a project with a specific role.")
     @PostMapping("/api/v1/projects/{id}/members")
-    public ResponseEntity<ApiResponse<ProjectMemberResponse>> addMember(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectMemberResponse>> addMember(
             @PathVariable UUID id, @Valid @RequestBody AddProjectMemberRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(projectService.addMember(id, req)));
+            .body(com.example.jari.shared.response.ApiResponse.ok(projectService.addMember(id, req)));
     }
 
-    @Operation(summary = "Remove member from project")
+    @Operation(summary = "Remove member from project", description = "Removes a user from a project.")
     @DeleteMapping("/api/v1/projects/{id}/members/{userId}")
-    public ResponseEntity<ApiResponse<Void>> removeMember(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> removeMember(
             @PathVariable UUID id, @PathVariable UUID userId) {
         projectService.removeMember(id, userId);
-        return ResponseEntity.ok(ApiResponse.ok("Member removed"));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Member removed"));
     }
 }

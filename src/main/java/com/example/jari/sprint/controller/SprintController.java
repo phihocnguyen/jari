@@ -14,65 +14,65 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Sprints & Board")
+@Tag(name = "Sprints & Board", description = "Endpoints for managing sprints, assigning issues, and retrieving the Kanban board")
 @RestController
 @RequiredArgsConstructor
 public class SprintController {
 
     private final SprintService sprintService;
 
-    @Operation(summary = "Create sprint")
+    @Operation(summary = "Create sprint", description = "Creates a new planned sprint within a project.")
     @PostMapping("/api/v1/projects/{projectId}/sprints")
-    public ResponseEntity<ApiResponse<SprintResponse>> create(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<SprintResponse>> create(
             @PathVariable UUID projectId, @Valid @RequestBody CreateSprintRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(sprintService.create(projectId, req)));
+            .body(com.example.jari.shared.response.ApiResponse.ok(sprintService.create(projectId, req)));
     }
 
-    @Operation(summary = "List sprints")
+    @Operation(summary = "List sprints", description = "Returns all sprints for a specific project, ordered by creation date.")
     @GetMapping("/api/v1/projects/{projectId}/sprints")
-    public ResponseEntity<ApiResponse<List<SprintResponse>>> list(@PathVariable UUID projectId) {
-        return ResponseEntity.ok(ApiResponse.ok(sprintService.list(projectId)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<SprintResponse>>> list(@PathVariable UUID projectId) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(sprintService.list(projectId)));
     }
 
-    @Operation(summary = "Update sprint")
+    @Operation(summary = "Update sprint", description = "Updates sprint details such as name, goal, and dates.")
     @PutMapping("/api/v1/sprints/{id}")
-    public ResponseEntity<ApiResponse<SprintResponse>> update(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<SprintResponse>> update(
             @PathVariable UUID id, @Valid @RequestBody UpdateSprintRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(sprintService.update(id, req)));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(sprintService.update(id, req)));
     }
 
-    @Operation(summary = "Start sprint")
+    @Operation(summary = "Start sprint", description = "Starts a planned sprint. A project can only have one active sprint at a time.")
     @PostMapping("/api/v1/sprints/{id}/start")
-    public ResponseEntity<ApiResponse<SprintResponse>> start(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(sprintService.start(id)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<SprintResponse>> start(@PathVariable UUID id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(sprintService.start(id)));
     }
 
-    @Operation(summary = "Complete sprint")
+    @Operation(summary = "Complete sprint", description = "Marks an active sprint as completed.")
     @PostMapping("/api/v1/sprints/{id}/complete")
-    public ResponseEntity<ApiResponse<SprintResponse>> complete(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(sprintService.complete(id)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<SprintResponse>> complete(@PathVariable UUID id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(sprintService.complete(id)));
     }
 
-    @Operation(summary = "Add issue to sprint")
+    @Operation(summary = "Add issue to sprint", description = "Assigns an issue to a sprint, placing it at the end of the sprint backlog.")
     @PostMapping("/api/v1/sprints/{id}/issues")
-    public ResponseEntity<ApiResponse<Void>> addIssue(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> addIssue(
             @PathVariable UUID id, @Valid @RequestBody AddIssueToSprintRequest req) {
         sprintService.addIssue(id, req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Issue added to sprint"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(com.example.jari.shared.response.ApiResponse.ok("Issue added to sprint"));
     }
 
-    @Operation(summary = "Remove issue from sprint")
+    @Operation(summary = "Remove issue from sprint", description = "Removes an issue from a sprint.")
     @DeleteMapping("/api/v1/sprints/{id}/issues/{issueId}")
-    public ResponseEntity<ApiResponse<Void>> removeIssue(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> removeIssue(
             @PathVariable UUID id, @PathVariable UUID issueId) {
         sprintService.removeIssue(id, issueId);
-        return ResponseEntity.ok(ApiResponse.ok("Issue removed from sprint"));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Issue removed from sprint"));
     }
 
-    @Operation(summary = "Get Kanban board (active sprint)")
+    @Operation(summary = "Get Kanban board", description = "Returns the board view for the currently active sprint in the project, grouped by status columns.")
     @GetMapping("/api/v1/projects/{projectId}/board")
-    public ResponseEntity<ApiResponse<List<BoardColumnResponse>>> getBoard(@PathVariable UUID projectId) {
-        return ResponseEntity.ok(ApiResponse.ok(sprintService.getBoard(projectId)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<BoardColumnResponse>>> getBoard(@PathVariable UUID projectId) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(sprintService.getBoard(projectId)));
     }
 }

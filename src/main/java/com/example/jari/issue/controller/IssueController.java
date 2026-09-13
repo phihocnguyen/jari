@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Issues")
+@Tag(name = "Issues", description = "Endpoints for managing issues, filtering, and retrieving history")
 @RestController
 @RequiredArgsConstructor
 public class IssueController {
@@ -26,49 +26,49 @@ public class IssueController {
     private final IssueService issueService;
     private final IssueHistoryService historyService;
 
-    @Operation(summary = "Create issue")
+    @Operation(summary = "Create issue", description = "Creates a new issue in a specific project. Generates a unique issue key automatically.")
     @PostMapping("/api/v1/projects/{projectId}/issues")
-    public ResponseEntity<ApiResponse<IssueResponse>> create(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<IssueResponse>> create(
             @PathVariable UUID projectId,
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody CreateIssueRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(issueService.create(projectId, user.getId(), req)));
+            .body(com.example.jari.shared.response.ApiResponse.ok(issueService.create(projectId, user.getId(), req)));
     }
 
-    @Operation(summary = "List issues with filter")
+    @Operation(summary = "List issues with filter", description = "Returns a paginated list of issues for a project, with optional dynamic filtering (status, assignee, sprint, etc.).")
     @GetMapping("/api/v1/projects/{projectId}/issues")
-    public ResponseEntity<ApiResponse<PageResponse<IssueResponse>>> list(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<com.example.jari.shared.response.PageResponse<IssueResponse>>> list(
             @PathVariable UUID projectId,
             @ModelAttribute IssueFilterRequest filter) {
-        return ResponseEntity.ok(ApiResponse.ok(issueService.list(projectId, filter)));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.list(projectId, filter)));
     }
 
-    @Operation(summary = "Get issue")
+    @Operation(summary = "Get issue", description = "Returns details of a specific issue.")
     @GetMapping("/api/v1/issues/{id}")
-    public ResponseEntity<ApiResponse<IssueResponse>> get(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(issueService.get(id)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<IssueResponse>> get(@PathVariable UUID id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.get(id)));
     }
 
-    @Operation(summary = "Update issue")
+    @Operation(summary = "Update issue", description = "Updates an issue's fields. Generates audit history records for changed fields automatically.")
     @PutMapping("/api/v1/issues/{id}")
-    public ResponseEntity<ApiResponse<IssueResponse>> update(
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<IssueResponse>> update(
             @PathVariable UUID id,
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody UpdateIssueRequest req) {
-        return ResponseEntity.ok(ApiResponse.ok(issueService.update(id, user.getId(), req)));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.update(id, user.getId(), req)));
     }
 
-    @Operation(summary = "Delete issue")
+    @Operation(summary = "Delete issue", description = "Deletes an issue permanently.")
     @DeleteMapping("/api/v1/issues/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(@PathVariable UUID id) {
         issueService.delete(id);
-        return ResponseEntity.ok(ApiResponse.ok("Issue deleted"));
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Issue deleted"));
     }
 
-    @Operation(summary = "Get issue audit history")
+    @Operation(summary = "Get issue audit history", description = "Returns the chronological audit trail of changes made to an issue.")
     @GetMapping("/api/v1/issues/{id}/history")
-    public ResponseEntity<ApiResponse<List<IssueHistoryResponse>>> getHistory(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(historyService.getHistory(id)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<IssueHistoryResponse>>> getHistory(@PathVariable UUID id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(historyService.getHistory(id)));
     }
 }
