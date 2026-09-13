@@ -1,6 +1,8 @@
-﻿package com.example.jari.shared.config;
+package com.example.jari.shared.config;
 
 import com.example.jari.shared.security.JwtAuthenticationFilter;
+import com.example.jari.user.oauth2.OAuth2AuthenticationFailureHandler;
+import com.example.jari.user.oauth2.OAuth2AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,6 +28,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
 
     private static final String[] PUBLIC_PATHS = {
         "/api/v1/auth/**",
@@ -52,6 +56,8 @@ public class SecurityConfig {
             .oauth2Login(oauth2 -> oauth2
                 .authorizationEndpoint(ep -> ep.baseUri("/oauth2/authorize"))
                 .redirectionEndpoint(ep -> ep.baseUri("/login/oauth2/code/*"))
+                .successHandler(oAuth2SuccessHandler)
+                .failureHandler(oAuth2FailureHandler)
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .build();
