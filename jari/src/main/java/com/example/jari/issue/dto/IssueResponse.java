@@ -1,0 +1,29 @@
+﻿package com.example.jari.issue.dto;
+import lombok.Builder;
+import lombok.Data;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@Data @Builder
+public class IssueResponse {
+    private UUID id;
+    private String issueKey;
+    private String title;
+    private String description;
+    private UUID projectId;
+    private String issueType;
+    private String status;
+    private String statusCategory;
+    private String priority;
+    private UUID reporterId;
+    private String reporterName;
+    private UUID assigneeId;
+    private String assigneeName;
+    private UUID parentId;
+    private BigDecimal storyPoints;
+    private LocalDate dueDate;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
+}
