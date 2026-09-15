@@ -77,7 +77,6 @@ public class SecurityConfig {
             if (successHandler != null && failureHandler != null) {
                 http.oauth2Login(oauth2 -> oauth2
                     .authorizationEndpoint(ep -> ep.baseUri("/oauth2/authorize"))
-                    .redirectionEndpoint(ep -> ep.baseUri("/login/oauth2/code/*"))
                     .successHandler(successHandler)
                     .failureHandler(failureHandler)
                 );

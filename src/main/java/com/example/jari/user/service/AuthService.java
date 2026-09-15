@@ -34,15 +34,24 @@ public class AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new ConflictException("Email already in use: " + request.getEmail());
         }
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new ConflictException("Username already in use: " + request.getUsername());
+
+        String username = request.getUsername();
+        if (username == null || username.isBlank()) {
+            username = request.getEmail().split("@")[0] + "_" + UUID.randomUUID().toString().substring(0, 4);
+        } else if (userRepository.existsByUsername(username)) {
+            throw new ConflictException("Username already in use: " + username);
+        }
+
+        String displayName = request.getDisplayName();
+        if (displayName == null || displayName.isBlank()) {
+            displayName = request.getEmail().split("@")[0];
         }
 
         User user = User.builder()
-            .username(request.getUsername())
+            .username(username)
             .email(request.getEmail())
             .passwordHash(passwordEncoder.encode(request.getPassword()))
-            .displayName(request.getDisplayName())
+            .displayName(displayName)
             .status(UserStatus.ACTIVE)
             .build();
 

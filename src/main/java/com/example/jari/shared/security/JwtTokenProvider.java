@@ -20,7 +20,17 @@ public class JwtTokenProvider {
     private final AppProperties appProperties;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(appProperties.getJwt().getSecret());
+        String secret = appProperties.getJwt().getSecret();
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secret);
+        } catch (Exception e) {
+            try {
+                keyBytes = Decoders.BASE64URL.decode(secret);
+            } catch (Exception e2) {
+                keyBytes = secret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            }
+        }
         return Keys.hmacShaKeyFor(keyBytes);
     }
 

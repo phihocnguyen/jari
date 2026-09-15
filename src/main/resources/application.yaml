@@ -38,23 +38,23 @@ spring:
 #    username: ${RABBITMQ_USER:guest}
 #    password: ${RABBITMQ_PASS:guest}
 
-#  security:
-#    oauth2:
-#      client:
-#        registration:
-#          google:
-#            client-id: ${GOOGLE_CLIENT_ID:changeme}
-#            client-secret: ${GOOGLE_CLIENT_SECRET:changeme}
-#            scope: openid,profile,email
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:1035483492902-leb1af842felsvrle675oejavgbbbh3p.apps.googleusercontent.com}
+            client-secret: ${GOOGLE_CLIENT_SECRET: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}
+            scope: openid,profile,email
 
 app:
   security:
     # Set to true để bypass kiểm tra xác thực JWT (mọi API đều public). Đổi thành false để bật lại bảo mật.
     bypass: true
     # Set to true để kích hoạt luồng OAuth2 Google Login. Đổi thành true (và uncomment spring.security.oauth2 ở trên) để bật OAuth2.
-    oauth2-enabled: false
+    oauth2-enabled: true
   jwt:
-    secret: ${JWT_SECRET:replace-with-at-least-64-char-secret-in-production}
+    secret: ${JWT_SECRET:c2VjcmV0LWtleS1mb3ItamFyaS1qaXJhLWNsb25lLWFwcGxpY2F0aW9uLTIwMjY=}
     access-token-expiry: 900        # 15 minutes (seconds)
     refresh-token-expiry: 604800    # 7 days (seconds)
   cors:

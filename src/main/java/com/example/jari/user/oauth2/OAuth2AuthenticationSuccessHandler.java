@@ -69,9 +69,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         tokenService.saveRefreshToken(user.getId(), refreshToken, jwtTokenProvider.getRefreshTokenExpirySeconds());
 
         // Redirect to frontend with tokens
-        String redirectUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/oauth2/callback")
-            .queryParam("accessToken", accessToken)
-            .queryParam("refreshToken", refreshToken)
+        String redirectUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/auth/callback")
+            .queryParam("token", accessToken)
+            .queryParam("refresh", refreshToken)
             .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);

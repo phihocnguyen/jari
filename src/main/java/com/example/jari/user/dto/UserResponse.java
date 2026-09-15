@@ -1,5 +1,6 @@
 package com.example.jari.user.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -14,4 +15,9 @@ public class UserResponse {
     private String displayName;
     private String avatarUrl;
     private String status;
+
+    @JsonProperty("fullName")
+    public String getFullName() {
+        return displayName;
+    }
 }
