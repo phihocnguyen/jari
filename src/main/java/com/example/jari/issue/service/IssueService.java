@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -89,15 +90,19 @@ public class IssueService {
 
         if (req.getTitle()       != null) { historyService.record(issue, actor, "title",    issue.getTitle(),   req.getTitle());   issue.setTitle(req.getTitle()); }
         if (req.getDescription() != null) issue.setDescription(req.getDescription());
-        if (req.getStatusId()    != null) {
-            Status newStatus = resolveStatus(req.getStatusId());
-            historyService.record(issue, actor, "status", issue.getStatus().getName(), newStatus.getName());
-            issue.setStatus(newStatus);
+        if (req.getStatusId() != null || req.getStatus() != null) {
+            Status newStatus = resolveStatusByNameOrId(req.getStatus(), req.getStatusId());
+            if (issue.getStatus() == null || !issue.getStatus().getId().equals(newStatus.getId())) {
+                historyService.record(issue, actor, "status", issue.getStatus() != null ? issue.getStatus().getName() : null, newStatus.getName());
+                issue.setStatus(newStatus);
+            }
         }
-        if (req.getPriorityId()  != null) {
-            Priority newPriority = resolvePriority(req.getPriorityId());
-            historyService.record(issue, actor, "priority", issue.getPriority().getName(), newPriority.getName());
-            issue.setPriority(newPriority);
+        if (req.getPriorityId() != null || req.getPriority() != null) {
+            Priority newPriority = resolvePriorityByNameOrId(req.getPriority(), req.getPriorityId());
+            if (issue.getPriority() == null || !issue.getPriority().getId().equals(newPriority.getId())) {
+                historyService.record(issue, actor, "priority", issue.getPriority() != null ? issue.getPriority().getName() : null, newPriority.getName());
+                issue.setPriority(newPriority);
+            }
         }
         if (req.getAssigneeId()  != null) {
             User newAssignee = resolveUser(req.getAssigneeId());
@@ -115,8 +120,98 @@ public class IssueService {
     }
 
     @Transactional
+    public IssueResponse updateStatus(UUID id, UUID actorId, UpdateIssueRequest req) {
+        Issue issue = findOrThrow(id);
+        User actor  = resolveUser(actorId);
+
+        Status newStatus = resolveStatusByNameOrId(req.getStatus(), req.getStatusId());
+        if (issue.getStatus() == null || !issue.getStatus().getId().equals(newStatus.getId())) {
+            historyService.record(issue, actor, "status",
+                issue.getStatus() != null ? issue.getStatus().getName() : null,
+                newStatus.getName());
+            issue.setStatus(newStatus);
+        }
+
+        return mapper.toResponse(issueRepository.save(issue));
+    }
+
+    @Transactional
+    public IssueResponse updateAssignee(UUID id, UUID actorId, UpdateIssueRequest req) {
+        Issue issue = findOrThrow(id);
+        User actor  = resolveUser(actorId);
+
+        User newAssignee = req.getAssigneeId() != null ? resolveUser(req.getAssigneeId()) : null;
+        historyService.record(issue, actor, "assignee",
+            issue.getAssignee() != null ? issue.getAssignee().getDisplayName() : null,
+            newAssignee != null ? newAssignee.getDisplayName() : "Unassigned");
+        issue.setAssignee(newAssignee);
+
+        return mapper.toResponse(issueRepository.save(issue));
+    }
+
+    @Transactional
+    public IssueResponse updatePriority(UUID id, UUID actorId, UpdateIssueRequest req) {
+        Issue issue = findOrThrow(id);
+        User actor  = resolveUser(actorId);
+
+        Priority newPriority = resolvePriorityByNameOrId(req.getPriority(), req.getPriorityId());
+        if (issue.getPriority() == null || !issue.getPriority().getId().equals(newPriority.getId())) {
+            historyService.record(issue, actor, "priority",
+                issue.getPriority() != null ? issue.getPriority().getName() : null,
+                newPriority.getName());
+            issue.setPriority(newPriority);
+        }
+
+        return mapper.toResponse(issueRepository.save(issue));
+    }
+
+    @Transactional
     public void delete(UUID id) {
         issueRepository.delete(findOrThrow(id));
+    }
+
+    public Status resolveStatusByNameOrId(String statusStr, UUID statusId) {
+        if (statusId != null) {
+            return statusRepository.findById(statusId)
+                .orElseThrow(() -> new ResourceNotFoundException("Status", statusId));
+        }
+        if (statusStr != null && !statusStr.isBlank()) {
+            String norm = statusStr.trim();
+            Optional<Status> found = statusRepository.findByName(norm);
+            if (found.isPresent()) return found.get();
+
+            String altName = norm.replace("_", " ");
+            found = statusRepository.findByName(altName);
+            if (found.isPresent()) return found.get();
+
+            found = statusRepository.findAll().stream()
+                .filter(s -> s.getCategory() != null && s.getCategory().equalsIgnoreCase(norm))
+                .findFirst();
+            if (found.isPresent()) return found.get();
+
+            // Default fallback to first status if not matched
+            return statusRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Status", statusStr));
+        }
+        return statusRepository.findAll().stream().findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Status", "default"));
+    }
+
+    public Priority resolvePriorityByNameOrId(String priorityStr, UUID priorityId) {
+        if (priorityId != null) {
+            return priorityRepository.findById(priorityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Priority", priorityId));
+        }
+        if (priorityStr != null && !priorityStr.isBlank()) {
+            String norm = priorityStr.trim().toUpperCase();
+            Optional<Priority> found = priorityRepository.findByName(norm);
+            if (found.isPresent()) return found.get();
+
+            return priorityRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Priority", priorityStr));
+        }
+        return priorityRepository.findAll().stream().findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Priority", "default"));
     }
 
     private Issue    findOrThrow(UUID id)    { return issueRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Issue", id)); }

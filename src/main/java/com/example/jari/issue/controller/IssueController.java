@@ -59,6 +59,33 @@ public class IssueController {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.update(id, user.getId(), req)));
     }
 
+    @Operation(summary = "Update issue status", description = "Updates an issue's status.")
+    @PatchMapping("/api/v1/issues/{id}/status")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<IssueResponse>> updateStatus(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestBody UpdateIssueRequest req) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.updateStatus(id, user.getId(), req)));
+    }
+
+    @Operation(summary = "Update issue assignee", description = "Updates an issue's assignee.")
+    @PatchMapping("/api/v1/issues/{id}/assignee")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<IssueResponse>> updateAssignee(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestBody UpdateIssueRequest req) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.updateAssignee(id, user.getId(), req)));
+    }
+
+    @Operation(summary = "Update issue priority", description = "Updates an issue's priority.")
+    @PatchMapping("/api/v1/issues/{id}/priority")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<IssueResponse>> updatePriority(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestBody UpdateIssueRequest req) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.updatePriority(id, user.getId(), req)));
+    }
+
     @Operation(summary = "Delete issue", description = "Deletes an issue permanently.")
     @DeleteMapping("/api/v1/issues/{id}")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(@PathVariable UUID id) {
