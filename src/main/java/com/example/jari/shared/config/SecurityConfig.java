@@ -17,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -28,8 +29,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsConfigurationSource corsConfigurationSource;
-    private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
-    private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
+    private final AppProperties appProperties;
+    private final ObjectProvider<OAuth2AuthenticationSuccessHandler> oAuth2SuccessHandlerProvider;
+    private final ObjectProvider<OAuth2AuthenticationFailureHandler> oAuth2FailureHandlerProvider;
 
     private static final String[] PUBLIC_PATHS = {
         "/api/v1/auth/**",
@@ -44,23 +46,47 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
+        boolean bypass = appProperties.getSecurity().isBypass();
+        boolean oauth2Enabled = appProperties.getSecurity().isOauth2Enabled();
+
+        http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        if (bypass) {
+            // =========================================================================
+            // Bypass Mode: Tất cả API đều public (flag app.security.bypass = true)
+            // =========================================================================
+            http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        } else {
+            // Strict Security Mode: Chỉ mở PUBLIC_PATHS, còn lại yêu cầu authenticated
+            http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(PUBLIC_PATHS).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
-            )
-            .oauth2Login(oauth2 -> oauth2
-                .authorizationEndpoint(ep -> ep.baseUri("/oauth2/authorize"))
-                .redirectionEndpoint(ep -> ep.baseUri("/login/oauth2/code/*"))
-                .successHandler(oAuth2SuccessHandler)
-                .failureHandler(oAuth2FailureHandler)
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .build();
+            );
+        }
+
+        if (oauth2Enabled) {
+            // =========================================================================
+            // OAuth2 Mode: Bật đăng nhập Google OAuth2 (flag app.security.oauth2-enabled = true)
+            // =========================================================================
+            OAuth2AuthenticationSuccessHandler successHandler = oAuth2SuccessHandlerProvider.getIfAvailable();
+            OAuth2AuthenticationFailureHandler failureHandler = oAuth2FailureHandlerProvider.getIfAvailable();
+            if (successHandler != null && failureHandler != null) {
+                http.oauth2Login(oauth2 -> oauth2
+                    .authorizationEndpoint(ep -> ep.baseUri("/oauth2/authorize"))
+                    .redirectionEndpoint(ep -> ep.baseUri("/login/oauth2/code/*"))
+                    .successHandler(successHandler)
+                    .failureHandler(failureHandler)
+                );
+            }
+        }
+
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
 
     @Bean

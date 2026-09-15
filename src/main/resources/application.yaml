@@ -32,22 +32,27 @@ spring:
 #      port: ${REDIS_PORT:6379}
 #      timeout: 2000ms
 
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASS:guest}
+#  rabbitmq:
+#    host: ${RABBITMQ_HOST:localhost}
+#    port: ${RABBITMQ_PORT:5672}
+#    username: ${RABBITMQ_USER:guest}
+#    password: ${RABBITMQ_PASS:guest}
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:changeme}
-            client-secret: ${GOOGLE_CLIENT_SECRET:changeme}
-            scope: openid,profile,email
+#  security:
+#    oauth2:
+#      client:
+#        registration:
+#          google:
+#            client-id: ${GOOGLE_CLIENT_ID:changeme}
+#            client-secret: ${GOOGLE_CLIENT_SECRET:changeme}
+#            scope: openid,profile,email
 
 app:
+  security:
+    # Set to true để bypass kiểm tra xác thực JWT (mọi API đều public). Đổi thành false để bật lại bảo mật.
+    bypass: true
+    # Set to true để kích hoạt luồng OAuth2 Google Login. Đổi thành true (và uncomment spring.security.oauth2 ở trên) để bật OAuth2.
+    oauth2-enabled: false
   jwt:
     secret: ${JWT_SECRET:replace-with-at-least-64-char-secret-in-production}
     access-token-expiry: 900        # 15 minutes (seconds)

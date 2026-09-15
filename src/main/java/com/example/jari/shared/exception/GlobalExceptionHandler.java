@@ -45,6 +45,18 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        log.warn("Parameter type mismatch: {} - {}", ex.getName(), ex.getMessage());
+        return ResponseEntity.badRequest().body(
+            ErrorResponse.builder()
+                .error("INVALID_PARAMETER")
+                .message("Invalid parameter '" + ex.getName() + "': " + ex.getValue())
+                .timestamp(Instant.now())
+                .build()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
         log.error("Unhandled exception", ex);

@@ -1,5 +1,9 @@
 package com.example.jari.shared.security;
 
+import com.example.jari.shared.config.AppProperties;
+import com.example.jari.user.entity.User;
+import com.example.jari.user.entity.UserStatus;
+import com.example.jari.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,6 +31,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
+    private final UserRepository userRepository;
+    private final AppProperties appProperties;
+
+    private volatile CustomUserDetails cachedDevUserDetails;
 
     @Override
     protected void doFilterInternal(
@@ -49,7 +57,43 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 log.debug("JWT authentication failed: {}", e.getMessage());
             }
         }
+
+        // =========================================================================
+        // Bypass Mode: Nếu không có JWT và app.security.bypass = true,
+        // nạp dev user vào SecurityContext để các controller @AuthenticationPrincipal không bị NPE.
+        // =========================================================================
+        if (SecurityContextHolder.getContext().getAuthentication() == null && appProperties.getSecurity().isBypass()) {
+            CustomUserDetails devUserDetails = getOrCreateDevUserDetails();
+            if (devUserDetails != null) {
+                UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(devUserDetails, null, devUserDetails.getAuthorities());
+                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+        }
+
         filterChain.doFilter(request, response);
+    }
+
+    private CustomUserDetails getOrCreateDevUserDetails() {
+        if (cachedDevUserDetails != null) {
+            return cachedDevUserDetails;
+        }
+        try {
+            User user = userRepository.findAll().stream().findFirst().orElseGet(() ->
+                userRepository.save(User.builder()
+                    .username("dev_user")
+                    .email("dev@jari.local")
+                    .displayName("Developer")
+                    .status(UserStatus.ACTIVE)
+                    .build())
+            );
+            cachedDevUserDetails = new CustomUserDetails(user.getId(), user.getEmail(), "", user.isActive());
+            return cachedDevUserDetails;
+        } catch (Exception e) {
+            log.warn("Could not initialize dev bypass user: {}", e.getMessage());
+            return null;
+        }
     }
 
     private String extractToken(HttpServletRequest request) {
