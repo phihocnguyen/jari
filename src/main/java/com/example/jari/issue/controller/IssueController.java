@@ -86,6 +86,31 @@ public class IssueController {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.updatePriority(id, user.getId(), req)));
     }
 
+    @Operation(summary = "Update issue dates", description = "Sets or clears the issue's start and due dates. Pass null to clear a date.")
+    @PatchMapping("/api/v1/issues/{id}/dates")
+    public ResponseEntity<ApiResponse<IssueResponse>> updateDates(
+            @PathVariable UUID id,
+            @RequestBody UpdateIssueRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(issueService.updateDates(id, req)));
+    }
+
+    @Operation(summary = "Update issue parent", description = "Sets or clears the issue's parent. Pass a null parentId to detach.")
+    @PatchMapping("/api/v1/issues/{id}/parent")
+    public ResponseEntity<ApiResponse<IssueResponse>> updateParent(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestBody UpdateIssueRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(issueService.updateParent(id, user.getId(), req)));
+    }
+
+    @Operation(summary = "Update issue labels", description = "Replaces the set of labels attached to an issue.")
+    @PutMapping("/api/v1/issues/{id}/labels")
+    public ResponseEntity<ApiResponse<IssueResponse>> updateLabels(
+            @PathVariable UUID id,
+            @RequestBody UpdateIssueLabelsRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(issueService.setLabels(id, req.getLabelIds())));
+    }
+
     @Operation(summary = "Delete issue", description = "Deletes an issue permanently.")
     @DeleteMapping("/api/v1/issues/{id}")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(@PathVariable UUID id) {

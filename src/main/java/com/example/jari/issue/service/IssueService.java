@@ -17,6 +17,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,6 +37,7 @@ public class IssueService {
     private final IssueHistoryRepository historyRepository;
     private final CommentRepository commentRepository;
     private final SprintIssueRepository sprintIssueRepository;
+    private final LabelRepository labelRepository;
     private final IssueHistoryService historyService;
     private final IssueMapper mapper;
 
@@ -60,6 +63,7 @@ public class IssueService {
             .assignee(req.getAssigneeId() != null ? resolveUser(req.getAssigneeId()) : null)
             .parent(req.getParentId() != null ? resolveIssue(req.getParentId()) : null)
             .storyPoints(req.getStoryPoints())
+            .startDate(req.getStartDate())
             .dueDate(req.getDueDate())
             .build();
 
@@ -119,6 +123,7 @@ public class IssueService {
         if (req.getIssueTypeId() != null) issue.setIssueType(resolveIssueType(req.getIssueTypeId()));
         if (req.getParentId()    != null) issue.setParent(resolveIssue(req.getParentId()));
         if (req.getStoryPoints() != null) issue.setStoryPoints(req.getStoryPoints());
+        if (req.getStartDate()   != null) issue.setStartDate(req.getStartDate());
         if (req.getDueDate()     != null) issue.setDueDate(req.getDueDate());
 
         return mapper.toResponse(issueRepository.save(issue));
@@ -167,6 +172,52 @@ public class IssueService {
             issue.setPriority(newPriority);
         }
 
+        return mapper.toResponse(issueRepository.save(issue));
+    }
+
+    @Transactional
+    public IssueResponse updateDates(UUID id, UpdateIssueRequest req) {
+        Issue issue = findOrThrow(id);
+        // Both fields are applied as given; null clears the date
+        issue.setStartDate(req.getStartDate());
+        issue.setDueDate(req.getDueDate());
+        return mapper.toResponse(issueRepository.save(issue));
+    }
+
+    @Transactional
+    public IssueResponse updateParent(UUID id, UUID actorId, UpdateIssueRequest req) {
+        Issue issue = findOrThrow(id);
+        User actor = resolveUser(actorId);
+
+        Issue newParent = req.getParentId() != null ? resolveIssue(req.getParentId()) : null;
+        if (newParent != null) {
+            if (newParent.getId().equals(issue.getId())) {
+                throw new IllegalArgumentException("An issue cannot be its own parent");
+            }
+            // Walk up the ancestor chain to prevent cycles
+            Issue ancestor = newParent;
+            while (ancestor.getParent() != null) {
+                if (ancestor.getParent().getId().equals(issue.getId())) {
+                    throw new IllegalArgumentException("Cannot set a descendant as parent");
+                }
+                ancestor = ancestor.getParent();
+            }
+        }
+        historyService.record(issue, actor, "parent",
+            issue.getParent() != null ? issue.getParent().getIssueKey() : null,
+            newParent != null ? newParent.getIssueKey() : null);
+        issue.setParent(newParent);
+
+        return mapper.toResponse(issueRepository.save(issue));
+    }
+
+    @Transactional
+    public IssueResponse setLabels(UUID id, List<UUID> labelIds) {
+        Issue issue = findOrThrow(id);
+        issue.getLabels().clear();
+        if (labelIds != null && !labelIds.isEmpty()) {
+            issue.getLabels().addAll(labelRepository.findAllById(labelIds));
+        }
         return mapper.toResponse(issueRepository.save(issue));
     }
 

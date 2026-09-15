@@ -4,6 +4,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data @Builder
@@ -23,7 +24,9 @@ public class IssueResponse {
     private String assigneeName;
     private UUID parentId;
     private BigDecimal storyPoints;
+    private LocalDate startDate;
     private LocalDate dueDate;
+    private List<LabelResponse> labels;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

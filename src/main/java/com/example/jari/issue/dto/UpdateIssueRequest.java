@@ -14,6 +14,7 @@ public class UpdateIssueRequest {
     private UUID assigneeId;
     private UUID parentId;
     private BigDecimal storyPoints;
+    private LocalDate startDate;
     private LocalDate dueDate;
 
     private String status;

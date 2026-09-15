@@ -10,6 +10,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity @Table(name = "issues")
@@ -52,8 +54,18 @@ public class Issue {
     @Column(name = "story_points", precision = 5, scale = 2)
     private BigDecimal storyPoints;
 
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
     @Column(name = "due_date")
     private LocalDate dueDate;
+
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "issue_labels",
+        joinColumns = @JoinColumn(name = "issue_id"),
+        inverseJoinColumns = @JoinColumn(name = "label_id"))
+    private Set<Label> labels = new HashSet<>();
 
     @CreationTimestamp @Column(name = "created_at", updatable = false) private OffsetDateTime createdAt;
     @UpdateTimestamp   @Column(name = "updated_at")                    private OffsetDateTime updatedAt;
