@@ -84,7 +84,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 userRepository.save(User.builder()
                     .username("dev_user")
                     .email("dev@jari.local")
-                    .displayName("Developer")
+                    .displayName("Học Nguyễn")
                     .status(UserStatus.ACTIVE)
                     .build())
             );

@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.example.jari.sprint.repository.SprintIssueRepository;
+
 @Service
 @RequiredArgsConstructor
 public class IssueService {
@@ -30,6 +32,9 @@ public class IssueService {
     private final IssueTypeRepository issueTypeRepository;
     private final StatusRepository statusRepository;
     private final PriorityRepository priorityRepository;
+    private final IssueHistoryRepository historyRepository;
+    private final CommentRepository commentRepository;
+    private final SprintIssueRepository sprintIssueRepository;
     private final IssueHistoryService historyService;
     private final IssueMapper mapper;
 
@@ -167,7 +172,12 @@ public class IssueService {
 
     @Transactional
     public void delete(UUID id) {
-        issueRepository.delete(findOrThrow(id));
+        Issue issue = findOrThrow(id);
+        issueRepository.detachParentFromChildIssues(id);
+        commentRepository.deleteByIssueId(id);
+        historyRepository.deleteByIssueId(id);
+        sprintIssueRepository.deleteByIssueId(id);
+        issueRepository.delete(issue);
     }
 
     public Status resolveStatusByNameOrId(String statusStr, UUID statusId) {
