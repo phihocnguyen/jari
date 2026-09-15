@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.security;
+package com.example.jari.shared.security;
 
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;

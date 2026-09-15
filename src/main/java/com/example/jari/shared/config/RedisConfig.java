@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.config;
+package com.example.jari.shared.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;

@@ -1,4 +1,4 @@
-﻿package com.example.jari.issue.controller;
+package com.example.jari.issue.controller;
 
 import com.example.jari.issue.dto.*;
 import com.example.jari.issue.service.IssueHistoryService;

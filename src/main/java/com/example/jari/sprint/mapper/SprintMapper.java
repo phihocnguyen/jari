@@ -1,4 +1,4 @@
-﻿package com.example.jari.sprint.mapper;
+package com.example.jari.sprint.mapper;
 import com.example.jari.sprint.dto.SprintResponse;
 import com.example.jari.sprint.entity.Sprint;
 import org.mapstruct.Mapper;

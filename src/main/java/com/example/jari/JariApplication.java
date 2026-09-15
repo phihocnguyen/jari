@@ -1,4 +1,4 @@
-﻿package com.example.jari;
+package com.example.jari;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.cache.annotation.EnableCaching;

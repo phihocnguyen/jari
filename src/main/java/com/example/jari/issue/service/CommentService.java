@@ -1,4 +1,4 @@
-﻿package com.example.jari.issue.service;
+package com.example.jari.issue.service;
 
 import com.example.jari.issue.dto.CommentRequest;
 import com.example.jari.issue.dto.CommentResponse;

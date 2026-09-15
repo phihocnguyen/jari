@@ -1,4 +1,4 @@
-﻿package com.example.jari.user.oauth2;
+package com.example.jari.user.oauth2;
 
 import com.example.jari.shared.security.JwtTokenProvider;
 import com.example.jari.user.entity.OAuthAccount;

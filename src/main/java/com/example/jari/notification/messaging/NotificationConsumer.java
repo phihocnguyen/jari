@@ -1,4 +1,4 @@
-﻿package com.example.jari.notification.messaging;
+package com.example.jari.notification.messaging;
 
 import com.example.jari.notification.dto.NotificationPayload;
 import com.example.jari.shared.config.RabbitMQConfig;

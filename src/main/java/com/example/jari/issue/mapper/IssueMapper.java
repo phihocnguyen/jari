@@ -1,4 +1,4 @@
-﻿package com.example.jari.issue.mapper;
+package com.example.jari.issue.mapper;
 import com.example.jari.issue.dto.*;
 import com.example.jari.issue.entity.*;
 import org.mapstruct.Mapper;

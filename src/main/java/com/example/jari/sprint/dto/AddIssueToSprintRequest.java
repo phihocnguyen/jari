@@ -1,4 +1,4 @@
-﻿package com.example.jari.sprint.dto;
+package com.example.jari.sprint.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.util.UUID;

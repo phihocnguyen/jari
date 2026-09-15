@@ -1,4 +1,4 @@
-﻿package com.example.jari.project.entity;
+package com.example.jari.project.entity;
 import jakarta.persistence.Embeddable;
 import lombok.*;
 import java.io.Serializable;

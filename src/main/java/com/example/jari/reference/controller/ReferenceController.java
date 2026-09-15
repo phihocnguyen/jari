@@ -1,4 +1,4 @@
-﻿package com.example.jari.reference.controller;
+package com.example.jari.reference.controller;
 
 import com.example.jari.reference.dto.ReferenceItemResponse;
 import com.example.jari.reference.service.ReferenceService;

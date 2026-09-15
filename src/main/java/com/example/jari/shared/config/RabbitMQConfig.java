@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.config;
+package com.example.jari.shared.config;
 
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;

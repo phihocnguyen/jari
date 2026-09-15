@@ -1,4 +1,4 @@
-﻿package com.example.jari.issue.dto;
+package com.example.jari.issue.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.math.BigDecimal;

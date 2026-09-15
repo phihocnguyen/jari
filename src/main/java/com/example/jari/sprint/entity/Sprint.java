@@ -1,4 +1,4 @@
-﻿package com.example.jari.sprint.entity;
+package com.example.jari.sprint.entity;
 
 import com.example.jari.project.entity.Project;
 import jakarta.persistence.*;

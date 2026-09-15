@@ -1,4 +1,4 @@
-﻿package com.example.jari.user.oauth2;
+package com.example.jari.user.oauth2;
 
 import org.springframework.security.oauth2.core.user.OAuth2User;
 

@@ -1,4 +1,4 @@
-﻿package com.example.jari.workspace.repository;
+package com.example.jari.workspace.repository;
 
 import com.example.jari.workspace.entity.Workspace;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,4 +1,4 @@
-﻿package com.example.jari.user.entity;
+package com.example.jari.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

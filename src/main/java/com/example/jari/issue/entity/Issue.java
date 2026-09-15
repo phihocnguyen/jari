@@ -1,4 +1,4 @@
-﻿package com.example.jari.issue.entity;
+package com.example.jari.issue.entity;
 
 import com.example.jari.project.entity.Project;
 import com.example.jari.user.entity.User;

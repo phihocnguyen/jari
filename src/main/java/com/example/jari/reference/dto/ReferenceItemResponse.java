@@ -1,4 +1,4 @@
-﻿package com.example.jari.reference.dto;
+package com.example.jari.reference.dto;
 import lombok.Builder;
 import lombok.Data;
 import java.util.UUID;

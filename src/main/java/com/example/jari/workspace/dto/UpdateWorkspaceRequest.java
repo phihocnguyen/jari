@@ -1,4 +1,4 @@
-﻿package com.example.jari.workspace.dto;
+package com.example.jari.workspace.dto;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 

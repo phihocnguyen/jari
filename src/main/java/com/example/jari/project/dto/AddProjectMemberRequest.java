@@ -1,4 +1,4 @@
-﻿package com.example.jari.project.dto;
+package com.example.jari.project.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.util.UUID;

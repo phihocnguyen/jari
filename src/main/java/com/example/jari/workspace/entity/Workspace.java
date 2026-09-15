@@ -1,4 +1,4 @@
-﻿package com.example.jari.workspace.entity;
+package com.example.jari.workspace.entity;
 
 import com.example.jari.user.entity.User;
 import jakarta.persistence.*;

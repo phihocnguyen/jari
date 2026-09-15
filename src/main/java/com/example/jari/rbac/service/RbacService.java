@@ -1,4 +1,4 @@
-﻿package com.example.jari.rbac.service;
+package com.example.jari.rbac.service;
 
 import com.example.jari.rbac.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;

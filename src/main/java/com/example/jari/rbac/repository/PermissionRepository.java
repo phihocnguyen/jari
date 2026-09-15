@@ -1,4 +1,4 @@
-﻿package com.example.jari.rbac.repository;
+package com.example.jari.rbac.repository;
 
 import com.example.jari.rbac.entity.Permission;
 import org.springframework.data.jpa.repository.JpaRepository;

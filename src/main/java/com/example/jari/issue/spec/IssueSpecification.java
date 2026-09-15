@@ -1,4 +1,4 @@
-﻿package com.example.jari.issue.spec;
+package com.example.jari.issue.spec;
 
 import com.example.jari.issue.entity.Issue;
 import jakarta.persistence.criteria.Predicate;

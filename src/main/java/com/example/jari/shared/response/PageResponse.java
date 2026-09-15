@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.response;
+package com.example.jari.shared.response;
 
 import lombok.Getter;
 import org.springframework.data.domain.Page;

@@ -1,4 +1,4 @@
-﻿package com.example.jari.project.entity;
+package com.example.jari.project.entity;
 
 import com.example.jari.user.entity.User;
 import com.example.jari.workspace.entity.Workspace;

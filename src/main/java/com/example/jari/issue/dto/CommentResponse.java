@@ -1,4 +1,4 @@
-﻿package com.example.jari.issue.dto;
+package com.example.jari.issue.dto;
 import lombok.Builder;
 import lombok.Data;
 import java.time.OffsetDateTime;

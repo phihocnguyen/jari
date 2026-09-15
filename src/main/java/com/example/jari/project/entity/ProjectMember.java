@@ -1,4 +1,4 @@
-﻿package com.example.jari.project.entity;
+package com.example.jari.project.entity;
 
 import com.example.jari.rbac.entity.Role;
 import com.example.jari.user.entity.User;

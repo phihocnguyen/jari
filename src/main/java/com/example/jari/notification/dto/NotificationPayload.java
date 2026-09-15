@@ -1,4 +1,4 @@
-﻿package com.example.jari.notification.dto;
+package com.example.jari.notification.dto;
 import lombok.*;
 import java.io.Serializable;
 import java.time.Instant;

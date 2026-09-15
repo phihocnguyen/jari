@@ -1,4 +1,4 @@
-﻿package com.example.jari.issue.entity;
+package com.example.jari.issue.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

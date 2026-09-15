@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.security;
+package com.example.jari.shared.security;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;

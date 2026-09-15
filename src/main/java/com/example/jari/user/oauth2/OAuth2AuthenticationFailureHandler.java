@@ -1,4 +1,4 @@
-﻿package com.example.jari.user.oauth2;
+package com.example.jari.user.oauth2;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

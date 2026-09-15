@@ -1,4 +1,4 @@
-﻿package com.example.jari.sprint.repository;
+package com.example.jari.sprint.repository;
 import com.example.jari.sprint.entity.SprintIssue;
 import com.example.jari.sprint.entity.SprintIssueId;
 import org.springframework.data.jpa.repository.JpaRepository;

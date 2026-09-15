@@ -1,4 +1,4 @@
-﻿package com.example.jari.rbac.entity;
+package com.example.jari.rbac.entity;
 
 import jakarta.persistence.Embeddable;
 import lombok.*;

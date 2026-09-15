@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.response;
+package com.example.jari.shared.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;

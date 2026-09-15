@@ -1,4 +1,4 @@
-﻿package com.example.jari.reference.service;
+package com.example.jari.reference.service;
 
 import com.example.jari.issue.repository.IssueTypeRepository;
 import com.example.jari.issue.repository.PriorityRepository;

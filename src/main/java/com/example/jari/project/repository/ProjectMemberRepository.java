@@ -1,4 +1,4 @@
-﻿package com.example.jari.project.repository;
+package com.example.jari.project.repository;
 import com.example.jari.project.entity.ProjectMember;
 import com.example.jari.project.entity.ProjectMemberId;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.security;
+package com.example.jari.shared.security;
 
 import com.example.jari.shared.config.AppProperties;
 import io.jsonwebtoken.*;

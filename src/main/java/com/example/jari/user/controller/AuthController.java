@@ -1,14 +1,11 @@
-﻿package com.example.jari.user.controller;
+package com.example.jari.user.controller;
 
 import com.example.jari.shared.response.ApiResponse;
 import com.example.jari.shared.security.CustomUserDetails;
 import com.example.jari.user.dto.*;
 import com.example.jari.user.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;

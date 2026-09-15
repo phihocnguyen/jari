@@ -1,4 +1,4 @@
-﻿package com.example.jari.workspace.repository;
+package com.example.jari.workspace.repository;
 
 import com.example.jari.workspace.entity.WorkspaceMember;
 import com.example.jari.workspace.entity.WorkspaceMemberId;

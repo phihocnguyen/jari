@@ -1,4 +1,4 @@
-﻿package com.example.jari.sprint.service;
+package com.example.jari.sprint.service;
 
 import com.example.jari.issue.entity.Issue;
 import com.example.jari.issue.mapper.IssueMapper;

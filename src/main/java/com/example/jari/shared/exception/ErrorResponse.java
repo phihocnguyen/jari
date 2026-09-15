@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.exception;
+package com.example.jari.shared.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;

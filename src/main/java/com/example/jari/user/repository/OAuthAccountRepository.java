@@ -1,4 +1,4 @@
-﻿package com.example.jari.user.repository;
+package com.example.jari.user.repository;
 
 import com.example.jari.user.entity.OAuthAccount;
 import org.springframework.data.jpa.repository.JpaRepository;

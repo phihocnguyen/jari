@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.config;
+package com.example.jari.shared.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

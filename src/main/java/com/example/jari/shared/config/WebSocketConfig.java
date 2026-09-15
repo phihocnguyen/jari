@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.config;
+package com.example.jari.shared.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;

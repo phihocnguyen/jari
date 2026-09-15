@@ -1,4 +1,4 @@
-﻿package com.example.jari.sprint.dto;
+package com.example.jari.sprint.dto;
 import com.example.jari.issue.dto.IssueResponse;
 import lombok.Builder;
 import lombok.Data;

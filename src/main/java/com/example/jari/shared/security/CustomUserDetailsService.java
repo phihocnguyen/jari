@@ -1,4 +1,4 @@
-﻿package com.example.jari.shared.security;
+package com.example.jari.shared.security;
 
 import com.example.jari.user.entity.User;
 import com.example.jari.user.repository.UserRepository;
