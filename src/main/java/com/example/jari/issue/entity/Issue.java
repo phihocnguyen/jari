@@ -67,6 +67,10 @@ public class Issue {
         inverseJoinColumns = @JoinColumn(name = "label_id"))
     private Set<Label> labels = new HashSet<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "release_id")
+    private com.example.jari.release.entity.Release release;
+
     @CreationTimestamp @Column(name = "created_at", updatable = false) private OffsetDateTime createdAt;
     @UpdateTimestamp   @Column(name = "updated_at")                    private OffsetDateTime updatedAt;
 }

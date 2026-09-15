@@ -23,6 +23,8 @@ public class IssueResponse {
     private UUID assigneeId;
     private String assigneeName;
     private UUID parentId;
+    private UUID releaseId;
+    private String releaseName;
     private BigDecimal storyPoints;
     private LocalDate startDate;
     private LocalDate dueDate;
