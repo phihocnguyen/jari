@@ -111,6 +111,14 @@ public class IssueController {
         return ResponseEntity.ok(ApiResponse.ok(issueService.setLabels(id, req.getLabelIds())));
     }
 
+    @Operation(summary = "Update issue release (fix version)", description = "Sets or clears the issue's fix version. Pass a null releaseId to clear.")
+    @PatchMapping("/api/v1/issues/{id}/release")
+    public ResponseEntity<ApiResponse<IssueResponse>> updateRelease(
+            @PathVariable UUID id,
+            @RequestBody SetIssueReleaseRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(issueService.setRelease(id, req.getReleaseId())));
+    }
+
     @Operation(summary = "Delete issue", description = "Deletes an issue permanently.")
     @DeleteMapping("/api/v1/issues/{id}")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(@PathVariable UUID id) {

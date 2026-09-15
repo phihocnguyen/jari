@@ -21,6 +21,8 @@ public interface IssueMapper {
     @Mapping(source = "assignee.id",      target = "assigneeId")
     @Mapping(source = "assignee.displayName", target = "assigneeName")
     @Mapping(source = "parent.id",        target = "parentId")
+    @Mapping(source = "release.id",       target = "releaseId")
+    @Mapping(source = "release.name",     target = "releaseName")
     @Mapping(source = "labels",           target = "labels")
     IssueResponse toResponse(Issue issue);
 

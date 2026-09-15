@@ -38,6 +38,7 @@ public class IssueService {
     private final CommentRepository commentRepository;
     private final SprintIssueRepository sprintIssueRepository;
     private final LabelRepository labelRepository;
+    private final com.example.jari.release.repository.ReleaseRepository releaseRepository;
     private final IssueHistoryService historyService;
     private final IssueMapper mapper;
 
@@ -217,6 +218,19 @@ public class IssueService {
         issue.getLabels().clear();
         if (labelIds != null && !labelIds.isEmpty()) {
             issue.getLabels().addAll(labelRepository.findAllById(labelIds));
+        }
+        return mapper.toResponse(issueRepository.save(issue));
+    }
+
+    @Transactional
+    public IssueResponse setRelease(UUID id, UUID releaseId) {
+        Issue issue = findOrThrow(id);
+        if (releaseId != null) {
+            com.example.jari.release.entity.Release release = releaseRepository.findById(releaseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Release", releaseId));
+            issue.setRelease(release);
+        } else {
+            issue.setRelease(null);
         }
         return mapper.toResponse(issueRepository.save(issue));
     }
