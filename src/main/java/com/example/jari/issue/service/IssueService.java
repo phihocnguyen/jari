@@ -93,6 +93,19 @@ public class IssueService {
         return mapper.toResponse(findOrThrow(id));
     }
 
+    @Transactional(readOnly = true)
+    public IssueResponse getByIdOrKey(String idOrKey) {
+        Issue issue;
+        try {
+            issue = findOrThrow(UUID.fromString(idOrKey));
+        } catch (IllegalArgumentException ex) {
+            // Not a UUID — treat as issue key like "MOBILE-5"
+            issue = issueRepository.findByIssueKeyIgnoreCase(idOrKey)
+                .orElseThrow(() -> new ResourceNotFoundException("Issue", idOrKey));
+        }
+        return mapper.toResponse(issue);
+    }
+
     @Transactional
     public IssueResponse update(UUID id, UUID actorId, UpdateIssueRequest req) {
         Issue issue = findOrThrow(id);

@@ -44,10 +44,10 @@ public class IssueController {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.list(projectId, filter)));
     }
 
-    @Operation(summary = "Get issue", description = "Returns details of a specific issue.")
+    @Operation(summary = "Get issue", description = "Returns details of a specific issue. Accepts either the issue UUID or its key (e.g. MOBILE-5).")
     @GetMapping("/api/v1/issues/{id}")
-    public ResponseEntity<com.example.jari.shared.response.ApiResponse<IssueResponse>> get(@PathVariable UUID id) {
-        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.get(id)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<IssueResponse>> get(@PathVariable String id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(issueService.getByIdOrKey(id)));
     }
 
     @Operation(summary = "Update issue", description = "Updates an issue's fields. Generates audit history records for changed fields automatically.")
