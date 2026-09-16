@@ -688,6 +688,61 @@ Các API này cung cấp dữ liệu danh mục tĩnh dùng chung cho hệ thố
 
 ---
 
+### 8.7 Cập nhật nhanh Trạng thái (Quick Update Status)
+- **Method & Path:** `PATCH /api/v1/issues/{id}/status`
+- **Request Body:** `{"statusId": "uuid"}`
+- **Response:** `200 OK` (`IssueResponse`)
+
+---
+
+### 8.8 Cập nhật nhanh Người được giao (Quick Update Assignee)
+- **Method & Path:** `PATCH /api/v1/issues/{id}/assignee`
+- **Request Body:** `{"assigneeId": "uuid"}` (hoặc `null` để huỷ gán)
+- **Response:** `200 OK` (`IssueResponse`)
+
+---
+
+### 8.9 Cập nhật nhanh Độ ưu tiên (Quick Update Priority)
+- **Method & Path:** `PATCH /api/v1/issues/{id}/priority`
+- **Request Body:** `{"priorityId": "uuid"}`
+- **Response:** `200 OK` (`IssueResponse`)
+
+---
+
+### 8.10 Cập nhật nhanh Story Points
+- **Method & Path:** `PATCH /api/v1/issues/{id}/story-points`
+- **Request Body:** `{"storyPoints": 5.0}`
+- **Response:** `200 OK` (`IssueResponse`)
+
+---
+
+### 8.11 Cập nhật nhanh Ngày bắt đầu & Hạn chót (Quick Update Dates)
+- **Method & Path:** `PATCH /api/v1/issues/{id}/dates`
+- **Request Body:** `{"startDate": "2026-09-16", "dueDate": "2026-09-30"}`
+- **Response:** `200 OK` (`IssueResponse`)
+
+---
+
+### 8.12 Gán nhãn cho Issue (Attach Label)
+- **Method & Path:** `POST /api/v1/issues/{id}/labels`
+- **Request Body:** `{"labelId": "uuid"}`
+- **Response:** `200 OK` (`IssueResponse`)
+
+---
+
+### 8.13 Gỡ nhãn khỏi Issue (Detach Label)
+- **Method & Path:** `DELETE /api/v1/issues/{id}/labels/{labelId}`
+- **Response:** `200 OK` (`IssueResponse`)
+
+---
+
+### 8.14 Quản lý danh mục Nhãn theo Dự án (Project Labels)
+- **Lấy danh sách nhãn:** `GET /api/v1/projects/{projectId}/labels`
+- **Tạo nhãn mới:** `POST /api/v1/projects/{projectId}/labels`
+  - Body: `{"name": "frontend", "color": "#0052CC"}`
+
+---
+
 ## 9. Bình luận (Comments)
 
 ### 9.1 Danh sách bình luận của Issue
@@ -895,11 +950,112 @@ Các API này cung cấp dữ liệu danh mục tĩnh dùng chung cho hệ thố
 
 ---
 
-## 11. Thông báo thời gian thực (WebSocket / STOMP)
+### 10.9 Lấy thông tin chi tiết một Sprint
+- **Method & Path:** `GET /api/v1/sprints/{id}`
+- **Quyền truy cập:** Authenticated
+- **Response:** `200 OK` (`SprintResponse`)
+
+---
+
+### 10.10 Xoá Sprint
+- **Method & Path:** `DELETE /api/v1/sprints/{id}`
+- **Quyền truy cập:** `PROJECT_ADMIN`
+- **Mô tả:** Xoá sprint khỏi hệ thống. Toàn bộ các công việc (Issues) đang nằm trong sprint này sẽ tự động được chuyển về Backlog (`sprintId` gán về null).
+- **Response:** `200 OK`
+  ```json
+  {
+    "data": null,
+    "message": "Sprint deleted successfully",
+    "timestamp": "2026-09-16T08:00:00.000Z"
+  }
+  ```
+
+---
+
+## 11. Quản lý Phiên bản Phát hành (Releases / Fix Versions)
+
+### 11.1 Danh sách Release trong Dự án
+- **Method & Path:** `GET /api/v1/projects/{projectId}/releases`
+- **Quyền truy cập:** Thành viên Project
+- **Response:** `200 OK` (Mảng `ReleaseResponse` xếp theo thứ tự mới nhất)
+  ```json
+  {
+    "data": [
+      {
+        "id": "rel-uuid-1",
+        "projectId": "22222222-3333-4444-5555-666666666666",
+        "name": "1.0.0",
+        "description": "Bản phát hành chính thức đầu tiên",
+        "status": "UNRELEASED",
+        "releaseDate": "2026-09-30",
+        "createdAt": "2026-09-16T08:00:00Z"
+      }
+    ],
+    "message": "Success",
+    "timestamp": "2026-09-16T08:00:00.000Z"
+  }
+  ```
+
+---
+
+### 11.2 Chi tiết một Release
+- **Method & Path:** `GET /api/v1/releases/{id}`
+- **Quyền truy cập:** Authenticated
+- **Response:** `200 OK` (`ReleaseResponse`)
+
+---
+
+### 11.3 Tạo mới Release (Version)
+- **Method & Path:** `POST /api/v1/projects/{projectId}/releases`
+- **Quyền truy cập:** `PROJECT_ADMIN`, `PROJECT_MEMBER`
+- **Request Body:**
+  ```json
+  {
+    "name": "1.0.0",
+    "description": "Initial MVP Release",
+    "releaseDate": "2026-10-01"
+  }
+  ```
+- **Response:** `201 Created` (`ReleaseResponse`)
+
+---
+
+### 11.4 Cập nhật thông tin Release
+- **Method & Path:** `PUT /api/v1/releases/{id}`
+- **Quyền truy cập:** `PROJECT_ADMIN`, `PROJECT_MEMBER`
+- **Request Body:**
+  ```json
+  {
+    "name": "1.0.0-GA",
+    "description": "Release đã hoàn tất kiểm thử",
+    "releaseDate": "2026-10-05",
+    "status": "RELEASED"
+  }
+  ```
+- **Response:** `200 OK` (`ReleaseResponse`)
+
+---
+
+### 11.5 Xoá Release
+- **Method & Path:** `DELETE /api/v1/releases/{id}`
+- **Quyền truy cập:** `PROJECT_ADMIN`
+- **Mô tả:** Xoá release. Tất cả các Issue liên kết với release này sẽ tự động được huỷ liên kết (`release_id = null`) để đảm bảo toàn vẹn dữ liệu.
+- **Response:** `200 OK`
+  ```json
+  {
+    "data": null,
+    "message": "Release deleted successfully",
+    "timestamp": "2026-09-16T08:00:00.000Z"
+  }
+  ```
+
+---
+
+## 12. Thông báo thời gian thực (WebSocket / STOMP)
 
 Hệ thống tích hợp RabbitMQ + Spring WebSocket Message Broker để đẩy thông báo trực tiếp xuống trình duyệt người dùng khi có sự kiện liên quan đến Issue hoặc Comment.
 
-### 11.1 Kết nối STOMP
+### 12.1 Kết nối STOMP
 - **WebSocket URL:** `ws://localhost:8080/ws` hoặc `http://localhost:8080/ws` (hỗ trợ SockJS fallback)
 - **Cấu hình Client (Ví dụ bằng `@stomp/stompjs` hoặc `sockjs-client`):**
   ```javascript
@@ -923,7 +1079,7 @@ Hệ thống tích hợp RabbitMQ + Spring WebSocket Message Broker để đẩy
   client.activate();
   ```
 
-### 11.2 Cấu trúc Notification Payload
+### 12.2 Cấu trúc Notification Payload
 ```json
 {
   "type": "ISSUE_ASSIGNED",
@@ -942,7 +1098,7 @@ Hệ thống tích hợp RabbitMQ + Spring WebSocket Message Broker để đẩy
 
 ---
 
-## 12. Bảng tham chiếu Vai trò & Phân quyền (RBAC)
+## 13. Bảng tham chiếu Vai trò & Phân quyền (RBAC)
 
 | Nhóm | Vai trò (`roleName`) | Quyền hạn tiêu biểu |
 | :--- | :--- | :--- |
