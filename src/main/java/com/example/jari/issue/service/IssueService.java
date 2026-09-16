@@ -156,9 +156,9 @@ public class IssueService {
         if (req.getStoryPoints() != null) issue.setStoryPoints(req.getStoryPoints());
         if (req.getStartDate()   != null) issue.setStartDate(req.getStartDate());
         if (req.getDueDate()     != null) issue.setDueDate(req.getDueDate());
-        if (req.getSprintId()    != null) {
-            sprintIssueRepository.deleteByIssueId(issue.getId());
+        if (req.getSprintId() != null) {
             issue.getSprintIssues().clear();
+            issueRepository.saveAndFlush(issue);
             var sprint = sprintRepository.findById(req.getSprintId())
                 .orElseThrow(() -> new ResourceNotFoundException("Sprint", req.getSprintId()));
             var si = com.example.jari.sprint.entity.SprintIssue.builder()
@@ -167,7 +167,6 @@ public class IssueService {
                 .issue(issue)
                 .position(BigDecimal.valueOf(1000))
                 .build();
-            sprintIssueRepository.save(si);
             issue.getSprintIssues().add(si);
         }
 
@@ -284,14 +283,28 @@ public class IssueService {
         Issue issue = findOrThrow(id);
         User actor = actorId != null ? resolveUser(actorId) : null;
 
+        UUID currentSprintId = (issue.getSprintIssues() == null || issue.getSprintIssues().isEmpty())
+            ? null
+            : issue.getSprintIssues().iterator().next().getSprint() != null
+                ? issue.getSprintIssues().iterator().next().getSprint().getId()
+                : null;
+
+        if (java.util.Objects.equals(currentSprintId, sprintId)) {
+            return mapper.toResponse(issue);
+        }
+
         String oldSprintName = (issue.getSprintIssues() == null || issue.getSprintIssues().isEmpty())
             ? "Backlog"
             : issue.getSprintIssues().iterator().next().getSprint() != null
                 ? issue.getSprintIssues().iterator().next().getSprint().getName()
                 : "Backlog";
 
-        sprintIssueRepository.deleteByIssueId(issue.getId());
+        // With cascade = ALL and orphanRemoval = true on issue.sprintIssues,
+        // clearing the collection instructs Hibernate to delete the orphan record cleanly.
+        // Calling sprintIssueRepository.deleteByIssueId() beforehand causes StaleObjectStateException
+        // because Hibernate will attempt to delete rows already removed by the bulk query.
         issue.getSprintIssues().clear();
+        issueRepository.saveAndFlush(issue);
 
         String newSprintName = "Backlog";
         if (sprintId != null) {
@@ -305,15 +318,15 @@ public class IssueService {
                 .issue(issue)
                 .position(BigDecimal.valueOf(1000))
                 .build();
-            sprintIssueRepository.save(si);
             issue.getSprintIssues().add(si);
+            issueRepository.save(issue);
         }
 
         if (actor != null) {
             historyService.record(issue, actor, "sprint", oldSprintName, newSprintName);
         }
 
-        return mapper.toResponse(issueRepository.save(issue));
+        return mapper.toResponse(issue);
     }
 
     @Transactional
@@ -322,7 +335,7 @@ public class IssueService {
         issueRepository.detachParentFromChildIssues(id);
         commentRepository.deleteByIssueId(id);
         historyRepository.deleteByIssueId(id);
-        sprintIssueRepository.deleteByIssueId(id);
+        issue.getSprintIssues().clear();
         issueRepository.delete(issue);
     }
 
