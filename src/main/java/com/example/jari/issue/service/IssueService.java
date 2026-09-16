@@ -280,6 +280,43 @@ public class IssueService {
     }
 
     @Transactional
+    public IssueResponse updateSprint(UUID id, UUID actorId, UUID sprintId) {
+        Issue issue = findOrThrow(id);
+        User actor = actorId != null ? resolveUser(actorId) : null;
+
+        String oldSprintName = (issue.getSprintIssues() == null || issue.getSprintIssues().isEmpty())
+            ? "Backlog"
+            : issue.getSprintIssues().iterator().next().getSprint() != null
+                ? issue.getSprintIssues().iterator().next().getSprint().getName()
+                : "Backlog";
+
+        sprintIssueRepository.deleteByIssueId(issue.getId());
+        issue.getSprintIssues().clear();
+
+        String newSprintName = "Backlog";
+        if (sprintId != null) {
+            com.example.jari.sprint.entity.Sprint sprint = sprintRepository.findById(sprintId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sprint", sprintId));
+            newSprintName = sprint.getName();
+
+            var si = com.example.jari.sprint.entity.SprintIssue.builder()
+                .id(new com.example.jari.sprint.entity.SprintIssueId(sprint.getId(), issue.getId()))
+                .sprint(sprint)
+                .issue(issue)
+                .position(BigDecimal.valueOf(1000))
+                .build();
+            sprintIssueRepository.save(si);
+            issue.getSprintIssues().add(si);
+        }
+
+        if (actor != null) {
+            historyService.record(issue, actor, "sprint", oldSprintName, newSprintName);
+        }
+
+        return mapper.toResponse(issueRepository.save(issue));
+    }
+
+    @Transactional
     public void delete(UUID id) {
         Issue issue = findOrThrow(id);
         issueRepository.detachParentFromChildIssues(id);

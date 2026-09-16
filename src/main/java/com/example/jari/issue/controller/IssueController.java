@@ -119,6 +119,16 @@ public class IssueController {
         return ResponseEntity.ok(ApiResponse.ok(issueService.setRelease(id, req.getReleaseId())));
     }
 
+    @Operation(summary = "Update issue sprint", description = "Moves an issue to a sprint or back to backlog (pass null sprintId).")
+    @PatchMapping("/api/v1/issues/{id}/sprint")
+    public ResponseEntity<ApiResponse<IssueResponse>> updateSprint(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestBody UpdateIssueRequest req) {
+        UUID actorId = user != null ? user.getId() : null;
+        return ResponseEntity.ok(ApiResponse.ok(issueService.updateSprint(id, actorId, req.getSprintId())));
+    }
+
     @Operation(summary = "Delete issue", description = "Deletes an issue permanently.")
     @DeleteMapping("/api/v1/issues/{id}")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(@PathVariable UUID id) {

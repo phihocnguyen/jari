@@ -736,7 +736,14 @@ Các API này cung cấp dữ liệu danh mục tĩnh dùng chung cho hệ thố
 
 ---
 
-### 8.14 Quản lý danh mục Nhãn theo Dự án (Project Labels)
+### 8.14 Cập nhật nhanh Sprint (Move to Sprint / Backlog)
+- **Method & Path:** `PATCH /api/v1/issues/{id}/sprint`
+- **Request Body:** `{"sprintId": "uuid"}` (hoặc `{"sprintId": null}` để đưa issue về Backlog)
+- **Response:** `200 OK` (`IssueResponse`)
+
+---
+
+### 8.15 Quản lý danh mục Nhãn theo Dự án (Project Labels)
 - **Lấy danh sách nhãn:** `GET /api/v1/projects/{projectId}/labels`
 - **Tạo nhãn mới:** `POST /api/v1/projects/{projectId}/labels`
   - Body: `{"name": "frontend", "color": "#0052CC"}`
