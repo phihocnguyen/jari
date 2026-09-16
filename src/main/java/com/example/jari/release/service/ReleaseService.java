@@ -1,9 +1,11 @@
 package com.example.jari.release.service;
 
+import com.example.jari.issue.repository.IssueRepository;
 import com.example.jari.project.entity.Project;
 import com.example.jari.project.repository.ProjectRepository;
 import com.example.jari.release.dto.CreateReleaseRequest;
 import com.example.jari.release.dto.ReleaseResponse;
+import com.example.jari.release.dto.UpdateReleaseRequest;
 import com.example.jari.release.entity.Release;
 import com.example.jari.release.repository.ReleaseRepository;
 import com.example.jari.shared.exception.ResourceNotFoundException;
@@ -20,12 +22,20 @@ public class ReleaseService {
 
     private final ReleaseRepository releaseRepository;
     private final ProjectRepository projectRepository;
+    private final IssueRepository issueRepository;
 
     @Transactional(readOnly = true)
     public List<ReleaseResponse> list(UUID projectId) {
         return releaseRepository.findByProjectIdOrderByCreatedAtDesc(projectId).stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ReleaseResponse get(UUID releaseId) {
+        Release release = releaseRepository.findById(releaseId)
+            .orElseThrow(() -> new ResourceNotFoundException("Release", releaseId));
+        return toResponse(release);
     }
 
     @Transactional
@@ -41,6 +51,25 @@ public class ReleaseService {
             .status("UNRELEASED")
             .build();
         return toResponse(releaseRepository.save(release));
+    }
+
+    @Transactional
+    public ReleaseResponse update(UUID releaseId, UpdateReleaseRequest req) {
+        Release release = releaseRepository.findById(releaseId)
+            .orElseThrow(() -> new ResourceNotFoundException("Release", releaseId));
+        if (req.getName() != null && !req.getName().isBlank()) release.setName(req.getName().trim());
+        if (req.getDescription() != null) release.setDescription(req.getDescription());
+        if (req.getReleaseDate() != null) release.setReleaseDate(req.getReleaseDate());
+        if (req.getStatus() != null && !req.getStatus().isBlank()) release.setStatus(req.getStatus().trim().toUpperCase());
+        return toResponse(releaseRepository.save(release));
+    }
+
+    @Transactional
+    public void delete(UUID releaseId) {
+        Release release = releaseRepository.findById(releaseId)
+            .orElseThrow(() -> new ResourceNotFoundException("Release", releaseId));
+        issueRepository.detachReleaseFromIssues(releaseId);
+        releaseRepository.delete(release);
     }
 
     private ReleaseResponse toResponse(Release release) {

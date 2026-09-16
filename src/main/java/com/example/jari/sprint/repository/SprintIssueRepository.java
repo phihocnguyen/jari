@@ -16,4 +16,8 @@ public interface SprintIssueRepository extends JpaRepository<SprintIssue, Sprint
     @Modifying
     @Query("DELETE FROM SprintIssue si WHERE si.id.issueId = :issueId")
     void deleteByIssueId(@Param("issueId") UUID issueId);
+
+    @Modifying
+    @Query("DELETE FROM SprintIssue si WHERE si.id.sprintId = :sprintId")
+    void deleteBySprintId(@Param("sprintId") UUID sprintId);
 }

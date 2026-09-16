@@ -53,6 +53,11 @@ public class SprintService {
             .map(sprintMapper::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public SprintResponse get(UUID sprintId) {
+        return sprintMapper.toResponse(findOrThrow(sprintId));
+    }
+
     @Transactional
     public SprintResponse update(UUID sprintId, UpdateSprintRequest req) {
         Sprint sprint = findOrThrow(sprintId);
@@ -61,6 +66,13 @@ public class SprintService {
         if (req.getStartDate() != null) sprint.setStartDate(req.getStartDate());
         if (req.getEndDate()   != null) sprint.setEndDate(req.getEndDate());
         return sprintMapper.toResponse(sprintRepository.save(sprint));
+    }
+
+    @Transactional
+    public void delete(UUID sprintId) {
+        Sprint sprint = findOrThrow(sprintId);
+        sprintIssueRepository.deleteBySprintId(sprintId);
+        sprintRepository.delete(sprint);
     }
 
     @Transactional

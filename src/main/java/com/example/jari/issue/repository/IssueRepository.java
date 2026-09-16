@@ -21,4 +21,8 @@ public interface IssueRepository extends JpaRepository<Issue, UUID>, JpaSpecific
     @Modifying
     @Query("UPDATE Issue i SET i.parent = null WHERE i.parent.id = :issueId")
     void detachParentFromChildIssues(@Param("issueId") UUID issueId);
+
+    @Modifying
+    @Query("UPDATE Issue i SET i.release = null WHERE i.release.id = :releaseId")
+    void detachReleaseFromIssues(@Param("releaseId") UUID releaseId);
 }

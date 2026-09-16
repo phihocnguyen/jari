@@ -35,11 +35,24 @@ public class SprintController {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(sprintService.list(projectId)));
     }
 
+    @Operation(summary = "Get sprint", description = "Returns details for a single sprint.")
+    @GetMapping("/api/v1/sprints/{id}")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<SprintResponse>> get(@PathVariable UUID id) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(sprintService.get(id)));
+    }
+
     @Operation(summary = "Update sprint", description = "Updates sprint details such as name, goal, and dates.")
     @PutMapping("/api/v1/sprints/{id}")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<SprintResponse>> update(
             @PathVariable UUID id, @Valid @RequestBody UpdateSprintRequest req) {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(sprintService.update(id, req)));
+    }
+
+    @Operation(summary = "Delete sprint", description = "Deletes a sprint and moves its issues back to the backlog.")
+    @DeleteMapping("/api/v1/sprints/{id}")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(@PathVariable UUID id) {
+        sprintService.delete(id);
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Sprint deleted successfully"));
     }
 
     @Operation(summary = "Start sprint", description = "Starts a planned sprint. A project can only have one active sprint at a time.")
