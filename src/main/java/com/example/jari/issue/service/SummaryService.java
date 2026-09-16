@@ -192,7 +192,7 @@ public class SummaryService {
             "WHERE i.project.id = :pid " +
             "ORDER BY h.createdAt DESC", IssueHistory.class)
             .setParameter("pid", projectId)
-            .setMaxResults(20)
+            .setMaxResults(10)
             .getResultList();
 
         return histories.stream()
