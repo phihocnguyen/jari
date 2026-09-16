@@ -14,6 +14,7 @@ public class CreateIssueRequest {
     @NotNull private UUID priorityId;
     private UUID assigneeId;
     private UUID parentId;
+    private UUID sprintId;
     private BigDecimal storyPoints;
     private LocalDate startDate;
     private LocalDate dueDate;

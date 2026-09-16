@@ -25,6 +25,8 @@ public class IssueResponse {
     private UUID parentId;
     private UUID releaseId;
     private String releaseName;
+    private UUID sprintId;
+    private String sprintName;
     private BigDecimal storyPoints;
     private LocalDate startDate;
     private LocalDate dueDate;

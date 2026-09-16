@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +38,7 @@ public class IssueService {
     private final IssueHistoryRepository historyRepository;
     private final CommentRepository commentRepository;
     private final SprintIssueRepository sprintIssueRepository;
+    private final com.example.jari.sprint.repository.SprintRepository sprintRepository;
     private final LabelRepository labelRepository;
     private final com.example.jari.release.repository.ReleaseRepository releaseRepository;
     private final IssueHistoryService historyService;
@@ -68,7 +70,22 @@ public class IssueService {
             .dueDate(req.getDueDate())
             .build();
 
-        return mapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+
+        if (req.getSprintId() != null) {
+            var sprint = sprintRepository.findById(req.getSprintId())
+                .orElseThrow(() -> new ResourceNotFoundException("Sprint", req.getSprintId()));
+            var si = com.example.jari.sprint.entity.SprintIssue.builder()
+                .id(new com.example.jari.sprint.entity.SprintIssueId(sprint.getId(), saved.getId()))
+                .sprint(sprint)
+                .issue(saved)
+                .position(BigDecimal.valueOf(1000))
+                .build();
+            sprintIssueRepository.save(si);
+            saved.getSprintIssues().add(si);
+        }
+
+        return mapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -139,6 +156,20 @@ public class IssueService {
         if (req.getStoryPoints() != null) issue.setStoryPoints(req.getStoryPoints());
         if (req.getStartDate()   != null) issue.setStartDate(req.getStartDate());
         if (req.getDueDate()     != null) issue.setDueDate(req.getDueDate());
+        if (req.getSprintId()    != null) {
+            sprintIssueRepository.deleteByIssueId(issue.getId());
+            issue.getSprintIssues().clear();
+            var sprint = sprintRepository.findById(req.getSprintId())
+                .orElseThrow(() -> new ResourceNotFoundException("Sprint", req.getSprintId()));
+            var si = com.example.jari.sprint.entity.SprintIssue.builder()
+                .id(new com.example.jari.sprint.entity.SprintIssueId(sprint.getId(), issue.getId()))
+                .sprint(sprint)
+                .issue(issue)
+                .position(BigDecimal.valueOf(1000))
+                .build();
+            sprintIssueRepository.save(si);
+            issue.getSprintIssues().add(si);
+        }
 
         return mapper.toResponse(issueRepository.save(issue));
     }

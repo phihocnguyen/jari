@@ -71,6 +71,10 @@ public class Issue {
     @JoinColumn(name = "release_id")
     private com.example.jari.release.entity.Release release;
 
+    @Builder.Default
+    @OneToMany(mappedBy = "issue", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<com.example.jari.sprint.entity.SprintIssue> sprintIssues = new HashSet<>();
+
     @CreationTimestamp @Column(name = "created_at", updatable = false) private OffsetDateTime createdAt;
     @UpdateTimestamp   @Column(name = "updated_at")                    private OffsetDateTime updatedAt;
 }

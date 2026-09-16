@@ -20,5 +20,6 @@ public class UpdateIssueRequest {
     private String status;
     private String priority;
     private String type;
+    private UUID sprintId;
 }
 

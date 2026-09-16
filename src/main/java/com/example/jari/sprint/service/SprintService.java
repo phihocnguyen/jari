@@ -101,8 +101,8 @@ public class SprintService {
         Issue issue   = issueRepository.findById(req.getIssueId())
             .orElseThrow(() -> new ResourceNotFoundException("Issue", req.getIssueId()));
 
+        sprintIssueRepository.deleteByIssueId(req.getIssueId());
         SprintIssueId id = new SprintIssueId(sprintId, req.getIssueId());
-        if (sprintIssueRepository.existsById(id)) throw new ConflictException("Issue already in sprint");
 
         List<SprintIssue> existing = sprintIssueRepository.findByIdSprintIdOrderByPositionAsc(sprintId);
         BigDecimal maxPos = existing.isEmpty() ? BigDecimal.ZERO

@@ -24,7 +24,21 @@ public interface IssueMapper {
     @Mapping(source = "release.id",       target = "releaseId")
     @Mapping(source = "release.name",     target = "releaseName")
     @Mapping(source = "labels",           target = "labels")
+    @Mapping(source = "sprintIssues",     target = "sprintId")
+    @Mapping(source = "sprintIssues",     target = "sprintName")
     IssueResponse toResponse(Issue issue);
+
+    default java.util.UUID mapSprintId(Set<com.example.jari.sprint.entity.SprintIssue> sprintIssues) {
+        if (sprintIssues == null || sprintIssues.isEmpty()) return null;
+        var first = sprintIssues.iterator().next();
+        return first.getSprint() != null ? first.getSprint().getId() : null;
+    }
+
+    default String mapSprintName(Set<com.example.jari.sprint.entity.SprintIssue> sprintIssues) {
+        if (sprintIssues == null || sprintIssues.isEmpty()) return null;
+        var first = sprintIssues.iterator().next();
+        return first.getSprint() != null ? first.getSprint().getName() : null;
+    }
 
     default List<LabelResponse> mapLabels(Set<Label> labels) {
         if (labels == null) return List.of();
