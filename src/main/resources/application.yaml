@@ -59,6 +59,11 @@ app:
     refresh-token-expiry: 604800    # 7 days (seconds)
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
+  notifications:
+    # Job nhắc hạn issue hằng ngày lúc 8h sáng (múi giờ Asia/Ho_Chi_Minh), due date <= hôm nay + 2 ngày
+    due-soon-enabled: ${NOTIFICATIONS_DUE_SOON_ENABLED:true}
+    due-soon-cron: "0 0 8 * * *"
+    due-soon-zone: Asia/Ho_Chi_Minh
 
 management:
   endpoints:
