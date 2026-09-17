@@ -3,6 +3,7 @@ package com.example.jari.notification.entity;
 import com.example.jari.issue.entity.Issue;
 import com.example.jari.project.entity.Project;
 import com.example.jari.user.entity.User;
+import com.example.jari.workspace.entity.Workspace;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -45,6 +46,13 @@ public class Notification {
 
     @Column(name = "project_name", length = 100)
     private String projectName;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "workspace_id")
+    private Workspace workspace;
+
+    @Column(name = "workspace_name", length = 100)
+    private String workspaceName;
 
     @Column(name = "read_at")
     private OffsetDateTime readAt;
