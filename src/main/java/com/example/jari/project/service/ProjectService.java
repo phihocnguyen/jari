@@ -1,5 +1,6 @@
 package com.example.jari.project.service;
 
+import com.example.jari.notification.service.NotificationService;
 import com.example.jari.project.dto.*;
 import com.example.jari.project.entity.*;
 import com.example.jari.project.mapper.ProjectMapper;
@@ -29,6 +30,7 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final RbacService rbacService;
     private final ProjectMapper mapper;
+    private final NotificationService notificationService;
 
     @Transactional
     public ProjectResponse create(UUID workspaceId, UUID requesterId, CreateProjectRequest req) {
@@ -100,7 +102,7 @@ public class ProjectService {
     }
 
     @Transactional
-    public ProjectMemberResponse addMember(UUID projectId, AddProjectMemberRequest req) {
+    public ProjectMemberResponse addMember(UUID projectId, UUID actorId, AddProjectMemberRequest req) {
         Project project = findOrThrow(projectId);
         if (memberRepository.existsByIdProjectIdAndIdUserId(projectId, req.getUserId())) {
             throw new ConflictException("User is already a project member");
@@ -112,6 +114,12 @@ public class ProjectService {
             .project(project).user(user)
             .role(rbacService.getRoleByName(req.getRoleName()))
             .build());
+
+        User actor = actorId != null
+            ? userRepository.findById(actorId).orElse(null)
+            : null;
+        notificationService.notifyProjectMemberAdded(project, actor, user);
+
         return mapper.toMemberResponse(member);
     }
 

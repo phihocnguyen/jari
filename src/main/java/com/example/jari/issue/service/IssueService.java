@@ -5,6 +5,7 @@ import com.example.jari.issue.entity.*;
 import com.example.jari.issue.mapper.IssueMapper;
 import com.example.jari.issue.repository.*;
 import com.example.jari.issue.spec.IssueSpecification;
+import com.example.jari.notification.service.NotificationService;
 import com.example.jari.project.entity.Project;
 import com.example.jari.project.repository.ProjectRepository;
 import com.example.jari.shared.exception.ResourceNotFoundException;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,6 +45,7 @@ public class IssueService {
     private final com.example.jari.release.repository.ReleaseRepository releaseRepository;
     private final IssueHistoryService historyService;
     private final IssueMapper mapper;
+    private final NotificationService notificationService;
 
     @Transactional
     public IssueResponse create(UUID projectId, UUID reporterId, CreateIssueRequest req) {
@@ -71,6 +74,10 @@ public class IssueService {
             .build();
 
         Issue saved = issueRepository.save(issue);
+
+        if (saved.getAssignee() != null) {
+            notificationService.notifyIssueAssigned(saved, reporter, saved.getAssignee());
+        }
 
         if (req.getSprintId() != null) {
             var sprint = sprintRepository.findById(req.getSprintId())
@@ -146,10 +153,12 @@ public class IssueService {
         }
         if (req.getAssigneeId()  != null) {
             User newAssignee = resolveUser(req.getAssigneeId());
+            boolean changed = issue.getAssignee() == null || !issue.getAssignee().getId().equals(newAssignee.getId());
             historyService.record(issue, actor, "assignee",
                 issue.getAssignee() != null ? issue.getAssignee().getDisplayName() : null,
                 newAssignee.getDisplayName());
             issue.setAssignee(newAssignee);
+            if (changed) notificationService.notifyIssueAssigned(issue, actor, newAssignee);
         }
         if (req.getIssueTypeId() != null) issue.setIssueType(resolveIssueType(req.getIssueTypeId()));
         if (req.getParentId()    != null) issue.setParent(resolveIssue(req.getParentId()));
@@ -195,10 +204,17 @@ public class IssueService {
         User actor  = resolveUser(actorId);
 
         User newAssignee = req.getAssigneeId() != null ? resolveUser(req.getAssigneeId()) : null;
+        boolean changed = !Objects.equals(
+            issue.getAssignee() != null ? issue.getAssignee().getId() : null,
+            newAssignee != null ? newAssignee.getId() : null);
         historyService.record(issue, actor, "assignee",
             issue.getAssignee() != null ? issue.getAssignee().getDisplayName() : null,
             newAssignee != null ? newAssignee.getDisplayName() : "Unassigned");
         issue.setAssignee(newAssignee);
+
+        if (changed && newAssignee != null) {
+            notificationService.notifyIssueAssigned(issue, actor, newAssignee);
+        }
 
         return mapper.toResponse(issueRepository.save(issue));
     }
