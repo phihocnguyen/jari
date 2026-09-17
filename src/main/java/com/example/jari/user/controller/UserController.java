@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Users", description = "Endpoints for user profile management")
 @RestController
 @RequestMapping("/api/v1/users")
@@ -39,5 +41,15 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(userService.updateProfile(user.getId(), request)));
+    }
+
+    @Operation(
+        summary = "Search users",
+        description = "Searches users by email or display name for workspace invitations."
+    )
+    @GetMapping("/search")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<UserResponse>>> searchUsers(
+            @RequestParam(value = "q", defaultValue = "") String query) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(userService.searchUsers(query)));
     }
 }

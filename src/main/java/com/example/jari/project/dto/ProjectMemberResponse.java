@@ -7,8 +7,10 @@ import java.util.UUID;
 @Data @Builder
 public class ProjectMemberResponse {
     private UUID userId;
+    private String fullName;
     private String displayName;
     private String email;
+    private String avatarUrl;
     private String roleName;
     private OffsetDateTime joinedAt;
 }

@@ -12,6 +12,10 @@ public class ProjectResponse {
     private String projectKey;
     private String description;
     private UUID leadId;
+    private String leadName;
+    private String leadEmail;
+    private String leadAvatarUrl;
+    private String defaultAssignee;
     private String projectType;
     private String status;
     private OffsetDateTime createdAt;

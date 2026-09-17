@@ -39,47 +39,64 @@ public class ProjectController {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.listByWorkspace(workspaceId)));
     }
 
-    @Operation(summary = "Get project", description = "Returns details of a specific project by its ID.")
+    @Operation(summary = "Get project", description = "Returns details of a specific project by its ID or project-key.")
     @GetMapping("/api/v1/projects/{id}")
-    public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectResponse>> get(@PathVariable UUID id) {
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectResponse>> get(@PathVariable String id) {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.get(id)));
     }
 
     @Operation(summary = "Update project", description = "Updates project details such as name, description, lead, and status.")
     @PutMapping("/api/v1/projects/{id}")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectResponse>> update(
-            @PathVariable UUID id, @Valid @RequestBody UpdateProjectRequest req) {
-        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.update(id, req)));
+            @PathVariable String id,
+            @AuthenticationPrincipal CustomUserDetails user,
+            @Valid @RequestBody UpdateProjectRequest req) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.update(id, user.getId(), req)));
     }
 
     @Operation(summary = "Delete project", description = "Deletes a project permanently.")
     @DeleteMapping("/api/v1/projects/{id}")
-    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(@PathVariable UUID id) {
-        projectService.delete(id);
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(
+            @PathVariable String id,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        projectService.delete(id, user.getId());
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Project deleted"));
     }
 
     @Operation(summary = "List project members", description = "Returns all members assigned to a specific project.")
     @GetMapping("/api/v1/projects/{id}/members")
-    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<ProjectMemberResponse>>> listMembers(@PathVariable UUID id) {
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<ProjectMemberResponse>>> listMembers(@PathVariable String id) {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.listMembers(id)));
     }
 
     @Operation(summary = "Add member to project", description = "Adds a user to a project with a specific role.")
     @PostMapping("/api/v1/projects/{id}/members")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectMemberResponse>> addMember(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody AddProjectMemberRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(com.example.jari.shared.response.ApiResponse.ok(projectService.addMember(id, user.getId(), req)));
     }
 
+    @Operation(summary = "Update member role in project", description = "Updates a member's role in a project.")
+    @PutMapping("/api/v1/projects/{id}/members/{userId}/role")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectMemberResponse>> updateMemberRole(
+            @PathVariable String id,
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal CustomUserDetails user,
+            @Valid @RequestBody UpdateProjectMemberRoleRequest req) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(
+            projectService.updateMemberRole(id, user.getId(), userId, req.getRoleName())));
+    }
+
     @Operation(summary = "Remove member from project", description = "Removes a user from a project.")
     @DeleteMapping("/api/v1/projects/{id}/members/{userId}")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> removeMember(
-            @PathVariable UUID id, @PathVariable UUID userId) {
-        projectService.removeMember(id, userId);
+            @PathVariable String id,
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        projectService.removeMember(id, user.getId(), userId);
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Member removed"));
     }
 }

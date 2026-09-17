@@ -5,6 +5,7 @@ import java.util.UUID;
 
 @Data
 public class AddProjectMemberRequest {
-    @NotNull private UUID userId;
+    private UUID userId;
+    private String email;
     @NotBlank private String roleName;
 }

@@ -16,7 +16,10 @@ public interface WorkspaceMapper {
     @Mapping(source = "user.id",          target = "userId")
     @Mapping(source = "user.displayName", target = "displayName")
     @Mapping(source = "user.email",       target = "email")
+    @Mapping(source = "user.avatarUrl",   target = "avatarUrl")
     @Mapping(source = "role.name",        target = "roleName")
     @Mapping(source = "joinedAt",         target = "joinedAt")
+    @Mapping(target = "projectIds",       ignore = true)
+    @Mapping(target = "projectNames",     ignore = true)
     WorkspaceMemberResponse toMemberResponse(WorkspaceMember member);
 }

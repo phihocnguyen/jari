@@ -80,6 +80,28 @@ public class WorkspaceController {
             .body(com.example.jari.shared.response.ApiResponse.ok(workspaceService.addMember(user.getId(), id, req)));
     }
 
+    @Operation(summary = "Update member role in workspace", description = "Updates a member's role in the workspace. Requires workspace admin privileges.")
+    @PutMapping("/{id}/members/{userId}/role")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<WorkspaceMemberResponse>> updateMemberRole(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable UUID id,
+            @PathVariable UUID userId,
+            @Valid @RequestBody UpdateMemberRoleRequest req) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(
+            workspaceService.updateMemberRole(user.getId(), id, userId, req)));
+    }
+
+    @Operation(summary = "Update member project access in workspace", description = "Assigns or revokes project access for a workspace member. Requires workspace admin privileges.")
+    @PutMapping("/{id}/members/{userId}/projects")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<WorkspaceMemberResponse>> updateMemberProjects(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable UUID id,
+            @PathVariable UUID userId,
+            @Valid @RequestBody UpdateMemberProjectsRequest req) {
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(
+            workspaceService.updateMemberProjects(user.getId(), id, userId, req)));
+    }
+
     @Operation(summary = "Remove member from workspace", description = "Removes a user from the workspace. Requires workspace admin privileges.")
     @DeleteMapping("/{id}/members/{userId}")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> removeMember(
