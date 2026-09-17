@@ -1,5 +1,6 @@
 package com.example.jari.workspace.service;
 
+import com.example.jari.notification.service.NotificationService;
 import com.example.jari.rbac.service.RbacService;
 import com.example.jari.shared.exception.ConflictException;
 import com.example.jari.shared.exception.ForbiddenException;
@@ -29,6 +30,7 @@ public class WorkspaceService {
     private final UserRepository userRepository;
     private final RbacService rbacService;
     private final WorkspaceMapper mapper;
+    private final NotificationService notificationService;
 
     @Transactional
     public WorkspaceResponse create(UUID ownerId, CreateWorkspaceRequest req) {
@@ -106,6 +108,11 @@ public class WorkspaceService {
             .user(user)
             .role(rbacService.getRoleByName(req.getRoleName()))
             .build());
+
+        notificationService.notifyWorkspaceMemberAdded(ws, requesterId != null
+            ? userRepository.findById(requesterId).orElse(null)
+            : null, user);
+
         return mapper.toMemberResponse(member);
     }
 
