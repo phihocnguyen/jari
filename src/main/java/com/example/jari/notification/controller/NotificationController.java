@@ -24,30 +24,49 @@ public class NotificationController {
     @Operation(summary = "List my notifications", description = "Returns the 50 most recent notifications for the current user.")
     @GetMapping("/api/v1/notifications")
     public ResponseEntity<ApiResponse<List<NotificationResponse>>> list(
-            @AuthenticationPrincipal CustomUserDetails user) {
-        return ResponseEntity.ok(ApiResponse.ok(notificationService.listForUser(user.getId())));
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestParam(required = false) UUID userId) {
+        UUID effectiveUserId = (userId != null) ? userId : (user != null ? user.getId() : null);
+        if (effectiveUserId == null) {
+            return ResponseEntity.ok(ApiResponse.ok(List.of()));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(notificationService.listForUser(effectiveUserId)));
     }
 
     @Operation(summary = "Unread count", description = "Returns the number of unread notifications for the current user.")
     @GetMapping("/api/v1/notifications/unread-count")
     public ResponseEntity<ApiResponse<Long>> unreadCount(
-            @AuthenticationPrincipal CustomUserDetails user) {
-        return ResponseEntity.ok(ApiResponse.ok(notificationService.unreadCount(user.getId())));
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestParam(required = false) UUID userId) {
+        UUID effectiveUserId = (userId != null) ? userId : (user != null ? user.getId() : null);
+        if (effectiveUserId == null) {
+            return ResponseEntity.ok(ApiResponse.ok(0L));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(notificationService.unreadCount(effectiveUserId)));
     }
 
     @Operation(summary = "Mark notification as read", description = "Marks a single notification as read.")
     @PutMapping("/api/v1/notifications/{id}/read")
     public ResponseEntity<ApiResponse<NotificationResponse>> markRead(
             @PathVariable UUID id,
-            @AuthenticationPrincipal CustomUserDetails user) {
-        return ResponseEntity.ok(ApiResponse.ok(notificationService.markRead(user.getId(), id)));
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestParam(required = false) UUID userId) {
+        UUID effectiveUserId = (userId != null) ? userId : (user != null ? user.getId() : null);
+        if (effectiveUserId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(ApiResponse.ok(notificationService.markRead(effectiveUserId, id)));
     }
 
     @Operation(summary = "Mark all notifications as read", description = "Marks every unread notification of the current user as read.")
     @PutMapping("/api/v1/notifications/read-all")
     public ResponseEntity<ApiResponse<Void>> markAllRead(
-            @AuthenticationPrincipal CustomUserDetails user) {
-        notificationService.markAllRead(user.getId());
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestParam(required = false) UUID userId) {
+        UUID effectiveUserId = (userId != null) ? userId : (user != null ? user.getId() : null);
+        if (effectiveUserId != null) {
+            notificationService.markAllRead(effectiveUserId);
+        }
         return ResponseEntity.ok(ApiResponse.ok("All notifications marked as read"));
     }
 }

@@ -12,6 +12,6 @@ import java.util.UUID;
 public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
     boolean existsByWorkspaceKey(String workspaceKey);
 
-    @Query("SELECT w FROM Workspace w JOIN WorkspaceMember wm ON wm.workspace = w WHERE wm.user.id = :userId")
+    @Query("SELECT DISTINCT w FROM Workspace w JOIN WorkspaceMember wm ON wm.workspace = w WHERE wm.user.id = :userId")
     List<Workspace> findAllByMemberUserId(UUID userId);
 }

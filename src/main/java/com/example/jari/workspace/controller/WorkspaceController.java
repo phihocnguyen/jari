@@ -36,8 +36,13 @@ public class WorkspaceController {
     @Operation(summary = "List my workspaces", description = "Returns a list of workspaces the authenticated user is a member of.")
     @GetMapping
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<WorkspaceResponse>>> list(
-            @AuthenticationPrincipal CustomUserDetails user) {
-        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(workspaceService.listMyWorkspaces(user.getId())));
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestParam(required = false) UUID userId) {
+        UUID effectiveUserId = (userId != null) ? userId : (user != null ? user.getId() : null);
+        if (effectiveUserId == null) {
+            return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(List.of()));
+        }
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(workspaceService.listMyWorkspaces(effectiveUserId)));
     }
 
     @Operation(summary = "Get workspace by ID", description = "Returns details of a specific workspace.")

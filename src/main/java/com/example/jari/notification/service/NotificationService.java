@@ -43,29 +43,29 @@ public class NotificationService {
      */
     @Transactional
     public void notifyIssueAssigned(Issue issue, User actor, User assignee) {
-        if (assignee == null || isSelf(actor, assignee)) return;
+        if (assignee == null) return;
         String message = String.format("%s assigned you to %s: %s",
             displayName(actor), issue.getIssueKey(), issue.getTitle());
         create(NotificationType.ISSUE_ASSIGNED, assignee, issue.getProject(), issue, null, message);
     }
 
     /**
-     * Notify a user that they were added to a project. Self-add (project creator) does not notify.
+     * Notify a user that they were added to a project.
      */
     @Transactional
     public void notifyProjectMemberAdded(Project project, User actor, User newMember) {
-        if (newMember == null || isSelf(actor, newMember)) return;
+        if (newMember == null) return;
         String message = String.format("%s added you to project %s",
             displayName(actor), project.getName());
         create(NotificationType.MEMBER_INVITED, newMember, project, null, null, message);
     }
 
     /**
-     * Notify a user that they were added to a workspace. Self-add (workspace creator) does not notify.
+     * Notify a user that they were added to a workspace.
      */
     @Transactional
     public void notifyWorkspaceMemberAdded(Workspace workspace, User actor, User newMember) {
-        if (newMember == null || isSelf(actor, newMember)) return;
+        if (newMember == null) return;
         String message = String.format("%s added you to workspace %s",
             displayName(actor), workspace.getName());
         create(NotificationType.MEMBER_INVITED, newMember, null, null, workspace, message);
