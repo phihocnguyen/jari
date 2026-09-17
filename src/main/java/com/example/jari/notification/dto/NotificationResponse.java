@@ -14,6 +14,8 @@ public class NotificationResponse {
     private String issueKey;
     private UUID projectId;
     private String projectName;
+    private UUID workspaceId;
+    private String workspaceName;
     private String message;
     private boolean read;
     private Instant createdAt;

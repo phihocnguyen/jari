@@ -9,13 +9,19 @@ import com.example.jari.notification.repository.NotificationRepository;
 import com.example.jari.project.entity.Project;
 import com.example.jari.shared.exception.ResourceNotFoundException;
 import com.example.jari.user.entity.User;
+import com.example.jari.workspace.entity.Workspace;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +29,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
+
+    /** Window (in days) for the "deadline approaching" reminder: due date <= today + 2. */
+    public static final int DUE_SOON_WINDOW_DAYS = 2;
 
     private final NotificationRepository notificationRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -37,7 +46,7 @@ public class NotificationService {
         if (assignee == null || isSelf(actor, assignee)) return;
         String message = String.format("%s assigned you to %s: %s",
             displayName(actor), issue.getIssueKey(), issue.getTitle());
-        create(NotificationType.ISSUE_ASSIGNED, assignee, issue.getProject(), issue, message);
+        create(NotificationType.ISSUE_ASSIGNED, assignee, issue.getProject(), issue, null, message);
     }
 
     /**
@@ -48,7 +57,39 @@ public class NotificationService {
         if (newMember == null || isSelf(actor, newMember)) return;
         String message = String.format("%s added you to project %s",
             displayName(actor), project.getName());
-        create(NotificationType.MEMBER_INVITED, newMember, project, null, message);
+        create(NotificationType.MEMBER_INVITED, newMember, project, null, null, message);
+    }
+
+    /**
+     * Notify a user that they were added to a workspace. Self-add (workspace creator) does not notify.
+     */
+    @Transactional
+    public void notifyWorkspaceMemberAdded(Workspace workspace, User actor, User newMember) {
+        if (newMember == null || isSelf(actor, newMember)) return;
+        String message = String.format("%s added you to workspace %s",
+            displayName(actor), workspace.getName());
+        create(NotificationType.MEMBER_INVITED, newMember, null, null, workspace, message);
+    }
+
+    /**
+     * Notify the assignee that an issue's deadline is near (due date <= today + 2, including overdue).
+     * De-duplicated to at most one reminder per issue, recipient and day.
+     */
+    @Transactional
+    public void notifyIssueDueSoon(Issue issue, User assignee) {
+        if (assignee == null || issue.getDueDate() == null) return;
+        if (issue.getDueDate().isAfter(LocalDate.now().plusDays(DUE_SOON_WINDOW_DAYS))) return;
+
+        // Midnight of today (absolute instant); only the instant matters for the timestamptz comparison
+        ZoneId zone = ZoneId.systemDefault();
+        OffsetDateTime startOfDay = LocalDate.now(zone).atStartOfDay(zone).toInstant().atOffset(ZoneOffset.UTC);
+        boolean alreadyNotifiedToday = notificationRepository
+            .existsByTypeAndIssueIdAndRecipientIdAndCreatedAtGreaterThanEqual(
+                NotificationType.ISSUE_DUE_SOON, issue.getId(), assignee.getId(), startOfDay);
+        if (alreadyNotifiedToday) return;
+
+        String message = String.format("%s '%s' %s", issue.getIssueKey(), issue.getTitle(), duePhrase(issue.getDueDate()));
+        create(NotificationType.ISSUE_DUE_SOON, assignee, issue.getProject(), issue, null, message);
     }
 
     // ─── Inbox API ────────────────────────────────────────────────────
@@ -84,7 +125,8 @@ public class NotificationService {
      * the WebSocket push is done by NotificationPushListener after the transaction commits,
      * so a rollback never sends a phantom notification.
      */
-    private void create(NotificationType type, User recipient, Project project, Issue issue, String message) {
+    private void create(NotificationType type, User recipient, Project project, Issue issue,
+                        Workspace workspace, String message) {
         try {
             Notification n = notificationRepository.saveAndFlush(Notification.builder()
                 .recipient(recipient)
@@ -94,6 +136,8 @@ public class NotificationService {
                 .issueKey(issue != null ? issue.getIssueKey() : null)
                 .project(project)
                 .projectName(project != null ? project.getName() : null)
+                .workspace(workspace)
+                .workspaceName(workspace != null ? workspace.getName() : null)
                 .build());
             eventPublisher.publishEvent(new NotificationCreatedEvent(toResponse(n)));
         } catch (Exception e) {
@@ -101,6 +145,14 @@ public class NotificationService {
             log.error("Failed to create notification (type={}, recipient={}): {}",
                 type, recipient != null ? recipient.getId() : null, e.getMessage(), e);
         }
+    }
+
+    private String duePhrase(LocalDate dueDate) {
+        long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), dueDate);
+        if (daysLeft < 0) return "is overdue";
+        if (daysLeft == 0) return "is due today";
+        if (daysLeft == 1) return "is due tomorrow";
+        return String.format("is due in %d days", daysLeft);
     }
 
     private boolean isSelf(User actor, User recipient) {
@@ -120,9 +172,11 @@ public class NotificationService {
             .issueKey(n.getIssueKey())
             .projectId(n.getProject() != null ? n.getProject().getId() : null)
             .projectName(n.getProjectName())
+            .workspaceId(n.getWorkspace() != null ? n.getWorkspace().getId() : null)
+            .workspaceName(n.getWorkspaceName())
             .message(n.getMessage())
             .read(n.getReadAt() != null)
-            .createdAt(n.getCreatedAt() != null ? n.getCreatedAt().toInstant() : OffsetDateTime.now().toInstant())
+            .createdAt(n.getCreatedAt() != null ? n.getCreatedAt().toInstant() : Instant.now())
             .build();
     }
 }
