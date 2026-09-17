@@ -78,6 +78,7 @@ public class IssueService {
         if (saved.getAssignee() != null) {
             notificationService.notifyIssueAssigned(saved, reporter, saved.getAssignee());
         }
+        notificationService.notifyIssueDueSoon(saved, saved.getAssignee());
 
         if (req.getSprintId() != null) {
             var sprint = sprintRepository.findById(req.getSprintId())
@@ -179,7 +180,11 @@ public class IssueService {
             issue.getSprintIssues().add(si);
         }
 
-        return mapper.toResponse(issueRepository.save(issue));
+        IssueResponse response = mapper.toResponse(issueRepository.save(issue));
+        if (req.getDueDate() != null) {
+            notificationService.notifyIssueDueSoon(issue, issue.getAssignee());
+        }
+        return response;
     }
 
     @Transactional
@@ -241,7 +246,9 @@ public class IssueService {
         // Both fields are applied as given; null clears the date
         issue.setStartDate(req.getStartDate());
         issue.setDueDate(req.getDueDate());
-        return mapper.toResponse(issueRepository.save(issue));
+        IssueResponse response = mapper.toResponse(issueRepository.save(issue));
+        notificationService.notifyIssueDueSoon(issue, issue.getAssignee());
+        return response;
     }
 
     @Transactional
