@@ -41,7 +41,11 @@ public class SecurityConfig {
         "/swagger-ui/**",
         "/swagger-ui.html",
         "/actuator/health",
-        "/actuator/info"
+        "/actuator/info",
+        // WebSocket endpoint stays open at HTTP level; real auth happens on the
+        // STOMP CONNECT frame (WebSocketAuthChannelInterceptor).
+        "/ws/**",
+        "/ws"
     };
 
     @Bean

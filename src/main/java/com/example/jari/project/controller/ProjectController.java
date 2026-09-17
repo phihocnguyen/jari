@@ -68,9 +68,11 @@ public class ProjectController {
     @Operation(summary = "Add member to project", description = "Adds a user to a project with a specific role.")
     @PostMapping("/api/v1/projects/{id}/members")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<ProjectMemberResponse>> addMember(
-            @PathVariable UUID id, @Valid @RequestBody AddProjectMemberRequest req) {
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails user,
+            @Valid @RequestBody AddProjectMemberRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(com.example.jari.shared.response.ApiResponse.ok(projectService.addMember(id, req)));
+            .body(com.example.jari.shared.response.ApiResponse.ok(projectService.addMember(id, user.getId(), req)));
     }
 
     @Operation(summary = "Remove member from project", description = "Removes a user from a project.")

@@ -1058,13 +1058,20 @@ Các API này cung cấp dữ liệu danh mục tĩnh dùng chung cho hệ thố
 
 ---
 
-## 12. Thông báo thời gian thực (WebSocket / STOMP)
+## 12. Thông báo thời gian thực (WebSocket / STOMP) & Notification Inbox
 
-Hệ thống tích hợp RabbitMQ + Spring WebSocket Message Broker để đẩy thông báo trực tiếp xuống trình duyệt người dùng khi có sự kiện liên quan đến Issue hoặc Comment.
+Hệ thống đẩy thông báo trực tiếp xuống trình duyệt qua STOMP over SockJS và lưu thông báo vào bảng `notifications` để truy vấn lại (inbox). Hiện tại hỗ trợ:
 
-### 12.1 Kết nối STOMP
-- **WebSocket URL:** `ws://localhost:8080/ws` hoặc `http://localhost:8080/ws` (hỗ trợ SockJS fallback)
-- **Cấu hình Client (Ví dụ bằng `@stomp/stompjs` hoặc `sockjs-client`):**
+- `ISSUE_ASSIGNED`: Khi người dùng được gán làm assignee của issue (tạo issue có assignee, đổi assignee qua PUT/PATCH).
+- `MEMBER_INVITED`: Khi người dùng được thêm vào một project.
+
+> Lưu ý: self-action không tạo thông báo (tự gán issue cho mình, tự thêm mình vào project).
+
+### 12.1 Kết nối STOMP (yêu cầu JWT)
+- **WebSocket URL:** `http://localhost:8080/ws` (SockJS fallback)
+- **Xác thực:** gửi header `Authorization: Bearer <accessToken>` trong STOMP **CONNECT frame**. Kết nối thiếu/sai token sẽ bị từ chối.
+- **Bảo vệ subscription:** client chỉ được subscribe topic thông báo của chính mình (`/topic/notifications/{userId}` với `userId` trùng JWT subject).
+- **Cấu hình Client (ví dụ bằng `@stomp/stompjs` + `sockjs-client`):**
   ```javascript
   import { Client } from '@stomp/stompjs';
   import SockJS from 'sockjs-client';
@@ -1072,10 +1079,12 @@ Hệ thống tích hợp RabbitMQ + Spring WebSocket Message Broker để đẩy
   const client = new Client({
     webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
     reconnectDelay: 5000,
+    beforeConnect: () => {
+      client.connectHeaders = { Authorization: `Bearer ${accessToken}` };
+    },
   });
 
   client.onConnect = () => {
-    // Đăng ký nhận thông báo cá nhân theo userId
     const currentUserId = "7f000001-91a0-1555-8191-a0c3ba500000";
     client.subscribe(`/topic/notifications/${currentUserId}`, (message) => {
       const payload = JSON.parse(message.body);
@@ -1087,21 +1096,53 @@ Hệ thống tích hợp RabbitMQ + Spring WebSocket Message Broker để đẩy
   ```
 
 ### 12.2 Cấu trúc Notification Payload
+Payload đẩy qua WebSocket trùng với `NotificationResponse` của REST inbox:
 ```json
 {
+  "id": "9c1b0c2e-1111-2222-3333-444455556666",
   "type": "ISSUE_ASSIGNED",
   "targetUserId": "7f000001-91a0-1555-8191-a0c3ba500000",
   "issueId": "33333333-4444-5555-6666-777777777777",
   "issueKey": "JARI-1",
-  "message": "Bạn vừa được phân công giải quyết công việc JARI-1",
-  "timestamp": "2026-09-15T06:15:00Z"
+  "projectId": "aaaa1111-2222-3333-4444-555566667777",
+  "projectName": "Mobile App",
+  "message": "Học Nguyễn assigned you to JARI-1: Fix login bug",
+  "read": false,
+  "createdAt": "2026-09-17T06:15:00Z"
 }
 ```
 
-#### Các loại sự kiện (`type`):
-- `ISSUE_ASSIGNED`: Khi người dùng được gán vào issue.
-- `ISSUE_UPDATED`: Khi issue người dùng đang theo dõi/được gán có thay đổi.
-- `COMMENT_ADDED`: Khi có người bình luận mới vào issue liên quan.
+### 12.3 Notification Inbox (REST)
+Các endpoint dưới đây hoạt động trên user hiện tại (JWT), trả về chuẩn `ApiResponse<T>`:
+
+| Method | Endpoint | Mô tả |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/notifications` | Danh sách 50 thông báo mới nhất của user hiện tại. |
+| `GET` | `/api/v1/notifications/unread-count` | Số thông báo chưa đọc. |
+| `PUT` | `/api/v1/notifications/{id}/read` | Đánh dấu một thông báo đã đọc. |
+| `PUT` | `/api/v1/notifications/read-all` | Đánh dấu tất cả đã đọc. |
+
+Ví dụ `GET /api/v1/notifications`:
+```json
+{
+  "data": [
+    {
+      "id": "9c1b0c2e-1111-2222-3333-444455556666",
+      "type": "ISSUE_ASSIGNED",
+      "targetUserId": "7f000001-91a0-1555-8191-a0c3ba500000",
+      "issueId": "33333333-4444-5555-6666-777777777777",
+      "issueKey": "JARI-1",
+      "projectId": "aaaa1111-2222-3333-4444-555566667777",
+      "projectName": "Mobile App",
+      "message": "Học Nguyễn assigned you to JARI-1: Fix login bug",
+      "read": false,
+      "createdAt": "2026-09-17T06:15:00Z"
+    }
+  ],
+  "message": "Success",
+  "timestamp": "2026-09-17T06:15:01Z"
+}
+```
 
 ---
 
