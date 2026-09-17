@@ -1063,9 +1063,10 @@ Các API này cung cấp dữ liệu danh mục tĩnh dùng chung cho hệ thố
 Hệ thống đẩy thông báo trực tiếp xuống trình duyệt qua STOMP over SockJS và lưu thông báo vào bảng `notifications` để truy vấn lại (inbox). Hiện tại hỗ trợ:
 
 - `ISSUE_ASSIGNED`: Khi người dùng được gán làm assignee của issue (tạo issue có assignee, đổi assignee qua PUT/PATCH).
-- `MEMBER_INVITED`: Khi người dùng được thêm vào một project.
+- `MEMBER_INVITED`: Khi người dùng được thêm vào một workspace hoặc project.
+- `ISSUE_DUE_SOON`: Khi deadline của issue gán cho người dùng sắp đến hạn (`dueDate` <= hôm nay + 2 ngày, bao gồm đã quá hạn). Kích hoạt ngay khi gán/đổi due date, và có job nhắc lại hằng ngày lúc 8h sáng (múi giờ `Asia/Ho_Chi_Minh`, cấu hình `app.notifications.due-soon-cron`; tắt bằng `app.notifications.due-soon-enabled=false`). Mỗi issue/người nhận chỉ nhận tối đa 1 nhắc/ngày và issue ở status category `DONE` không được nhắc.
 
-> Lưu ý: self-action không tạo thông báo (tự gán issue cho mình, tự thêm mình vào project).
+> Lưu ý: self-action không tạo thông báo (tự gán issue cho mình, tự thêm mình vào project/workspace).
 
 ### 12.1 Kết nối STOMP (yêu cầu JWT)
 - **WebSocket URL:** `http://localhost:8080/ws` (SockJS fallback)
@@ -1106,11 +1107,15 @@ Payload đẩy qua WebSocket trùng với `NotificationResponse` của REST inbo
   "issueKey": "JARI-1",
   "projectId": "aaaa1111-2222-3333-4444-555566667777",
   "projectName": "Mobile App",
+  "workspaceId": "bbbb1111-2222-3333-4444-555566668888",
+  "workspaceName": "Jari Workspace",
   "message": "Học Nguyễn assigned you to JARI-1: Fix login bug",
   "read": false,
   "createdAt": "2026-09-17T06:15:00Z"
 }
 ```
+
+(`workspaceId`/`workspaceName` chỉ có mặt với thông báo liên quan workspace; các thông báo issue/project cũng có thể kèm theo khi dữ liệu sẵn có.)
 
 ### 12.3 Notification Inbox (REST)
 Các endpoint dưới đây hoạt động trên user hiện tại (JWT), trả về chuẩn `ApiResponse<T>`:
