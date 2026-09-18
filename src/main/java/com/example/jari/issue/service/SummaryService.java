@@ -129,13 +129,34 @@ public class SummaryService {
     private List<TypeCount> buildTypeBreakdown(UUID projectId) {
         List<Object[]> rows = em.createQuery(
             "SELECT i.issueType.name, COUNT(i) FROM Issue i " +
-            "WHERE i.project.id = :pid GROUP BY i.issueType.name ORDER BY COUNT(i) DESC")
+            "WHERE i.project.id = :pid GROUP BY i.issueType.name")
             .setParameter("pid", projectId)
             .getResultList();
-        return rows.stream()
-            .map(r -> TypeCount.builder()
-                .type((String) r[0])
-                .count(((Number) r[1]).longValue())
+
+        Map<String, Long> countMap = new HashMap<>();
+        for (Object[] r : rows) {
+            String typeName = (String) r[0];
+            long count = ((Number) r[1]).longValue();
+            countMap.put(typeName.toUpperCase(), count);
+        }
+
+        List<String> allTypes = em.createQuery("SELECT t.name FROM IssueType t", String.class).getResultList();
+        List<String> standardOrder = List.of("EPIC", "STORY", "TASK", "SUBTASK", "BUG");
+
+        List<String> sortedTypes = new ArrayList<>(allTypes);
+        sortedTypes.sort((a, b) -> {
+            int idxA = standardOrder.indexOf(a.toUpperCase());
+            int idxB = standardOrder.indexOf(b.toUpperCase());
+            if (idxA != -1 && idxB != -1) return Integer.compare(idxA, idxB);
+            if (idxA != -1) return -1;
+            if (idxB != -1) return 1;
+            return a.compareToIgnoreCase(b);
+        });
+
+        return sortedTypes.stream()
+            .map(typeName -> TypeCount.builder()
+                .type(typeName)
+                .count(countMap.getOrDefault(typeName.toUpperCase(), 0L))
                 .build())
             .collect(Collectors.toList());
     }
