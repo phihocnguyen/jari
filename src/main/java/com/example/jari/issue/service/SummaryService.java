@@ -113,13 +113,23 @@ public class SummaryService {
     private List<PriorityCount> buildPriorityBreakdown(UUID projectId) {
         List<Object[]> rows = em.createQuery(
             "SELECT i.priority.name, COUNT(i) FROM Issue i " +
-            "WHERE i.project.id = :pid GROUP BY i.priority.name ORDER BY COUNT(i) DESC")
+            "WHERE i.project.id = :pid GROUP BY i.priority.name")
             .setParameter("pid", projectId)
             .getResultList();
-        return rows.stream()
-            .map(r -> PriorityCount.builder()
-                .priority((String) r[0])
-                .count(((Number) r[1]).longValue())
+
+        Map<String, Long> countMap = new HashMap<>();
+        for (Object[] r : rows) {
+            String pName = (String) r[0];
+            long count = ((Number) r[1]).longValue();
+            countMap.put(pName.toUpperCase(), count);
+        }
+
+        List<String> standardPriorities = List.of("HIGHEST", "HIGH", "MEDIUM", "LOW", "LOWEST");
+
+        return standardPriorities.stream()
+            .map(pName -> PriorityCount.builder()
+                .priority(pName)
+                .count(countMap.getOrDefault(pName, 0L))
                 .build())
             .collect(Collectors.toList());
     }
