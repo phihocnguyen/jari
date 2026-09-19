@@ -31,6 +31,7 @@ public class IssueResponse {
     private LocalDate startDate;
     private LocalDate dueDate;
     private List<LabelResponse> labels;
+    private List<com.example.jari.component.dto.ComponentResponse> components;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

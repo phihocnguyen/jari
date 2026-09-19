@@ -46,6 +46,7 @@ public class IssueService {
     private final com.example.jari.sprint.repository.SprintRepository sprintRepository;
     private final LabelRepository labelRepository;
     private final com.example.jari.release.repository.ReleaseRepository releaseRepository;
+    private final com.example.jari.component.repository.ComponentRepository componentRepository;
     private final IssueHistoryService historyService;
     private final IssueMapper mapper;
     private final NotificationService notificationService;
@@ -306,6 +307,16 @@ public class IssueService {
         issue.getLabels().clear();
         if (labelIds != null && !labelIds.isEmpty()) {
             issue.getLabels().addAll(labelRepository.findAllById(labelIds));
+        }
+        return mapper.toResponse(issueRepository.save(issue));
+    }
+
+    @Transactional
+    public IssueResponse setComponents(UUID id, List<UUID> componentIds) {
+        Issue issue = findOrThrow(id);
+        issue.getComponents().clear();
+        if (componentIds != null && !componentIds.isEmpty()) {
+            issue.getComponents().addAll(componentRepository.findAllById(componentIds));
         }
         return mapper.toResponse(issueRepository.save(issue));
     }

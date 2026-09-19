@@ -111,6 +111,14 @@ public class IssueController {
         return ResponseEntity.ok(ApiResponse.ok(issueService.setLabels(id, req.getLabelIds())));
     }
 
+    @Operation(summary = "Update issue components", description = "Replaces the set of components attached to an issue.")
+    @PutMapping("/api/v1/issues/{id}/components")
+    public ResponseEntity<ApiResponse<IssueResponse>> updateComponents(
+            @PathVariable UUID id,
+            @RequestBody com.example.jari.issue.dto.UpdateIssueComponentsRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(issueService.setComponents(id, req.getComponentIds())));
+    }
+
     @Operation(summary = "Update issue release (fix version)", description = "Sets or clears the issue's fix version. Pass a null releaseId to clear.")
     @PatchMapping("/api/v1/issues/{id}/release")
     public ResponseEntity<ApiResponse<IssueResponse>> updateRelease(

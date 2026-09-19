@@ -24,6 +24,7 @@ public interface IssueMapper {
     @Mapping(source = "release.id",       target = "releaseId")
     @Mapping(source = "release.name",     target = "releaseName")
     @Mapping(source = "labels",           target = "labels")
+    @Mapping(source = "components",       target = "components")
     @Mapping(source = "sprintIssues",     target = "sprintId")
     @Mapping(source = "sprintIssues",     target = "sprintName")
     IssueResponse toResponse(Issue issue);
@@ -44,6 +45,18 @@ public interface IssueMapper {
         if (labels == null) return List.of();
         return labels.stream()
             .map(l -> LabelResponse.builder().id(l.getId()).name(l.getName()).color(l.getColor()).build())
+            .collect(Collectors.toList());
+    }
+
+    default List<com.example.jari.component.dto.ComponentResponse> mapComponents(Set<com.example.jari.component.entity.Component> components) {
+        if (components == null) return List.of();
+        return components.stream()
+            .map(c -> com.example.jari.component.dto.ComponentResponse.builder()
+                .id(c.getId())
+                .projectId(c.getProject() != null ? c.getProject().getId() : null)
+                .name(c.getName())
+                .description(c.getDescription())
+                .build())
             .collect(Collectors.toList());
     }
 
