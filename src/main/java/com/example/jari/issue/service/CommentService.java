@@ -17,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import com.example.jari.issue.entity.IssueWatcher;
+import com.example.jari.issue.repository.IssueWatcherRepository;
+import com.example.jari.notification.service.NotificationService;
+
 import java.util.UUID;
 
 @Service
@@ -27,6 +31,8 @@ public class CommentService {
     private final IssueRepository issueRepository;
     private final UserRepository userRepository;
     private final IssueMapper mapper;
+    private final IssueWatcherRepository issueWatcherRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<CommentResponse> list(UUID issueId) {
@@ -42,6 +48,12 @@ public class CommentService {
             .orElseThrow(() -> new ResourceNotFoundException("User", authorId));
         Comment comment = commentRepository.save(Comment.builder()
             .issue(issue).author(author).content(req.getContent()).build());
+
+        List<IssueWatcher> watchers = issueWatcherRepository.findByIdIssueId(issueId);
+        for (IssueWatcher watcher : watchers) {
+            notificationService.notifyIssueCommented(issue, author, watcher.getUser());
+        }
+
         return mapper.toCommentResponse(comment);
     }
 

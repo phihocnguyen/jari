@@ -49,6 +49,22 @@ public class NotificationService {
         create(NotificationType.ISSUE_ASSIGNED, assignee, issue.getProject(), issue, null, message);
     }
 
+    @Transactional
+    public void notifyIssueUpdated(Issue issue, User actor, User recipient) {
+        if (recipient == null || isSelf(actor, recipient)) return;
+        String message = String.format("%s updated issue %s: %s",
+            displayName(actor), issue.getIssueKey(), issue.getTitle());
+        create(NotificationType.ISSUE_UPDATED, recipient, issue.getProject(), issue, null, message);
+    }
+
+    @Transactional
+    public void notifyIssueCommented(Issue issue, User actor, User recipient) {
+        if (recipient == null || isSelf(actor, recipient)) return;
+        String message = String.format("%s commented on issue %s: %s",
+            displayName(actor), issue.getIssueKey(), issue.getTitle());
+        create(NotificationType.ISSUE_COMMENTED, recipient, issue.getProject(), issue, null, message);
+    }
+
     /**
      * Notify a user that they were added to a project.
      */

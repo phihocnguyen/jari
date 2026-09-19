@@ -27,6 +27,9 @@ import java.util.UUID;
 
 import com.example.jari.sprint.repository.SprintIssueRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class IssueService {
@@ -46,6 +49,18 @@ public class IssueService {
     private final IssueHistoryService historyService;
     private final IssueMapper mapper;
     private final NotificationService notificationService;
+    private final IssueWatcherRepository issueWatcherRepository;
+
+    private void notifyWatchersIssueUpdated(Issue issue, User actor) {
+        try {
+            List<IssueWatcher> watchers = issueWatcherRepository.findByIdIssueId(issue.getId());
+            for (IssueWatcher w : watchers) {
+                notificationService.notifyIssueUpdated(issue, actor, w.getUser());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to notify watchers for issue {}: {}", issue.getIssueKey(), e.getMessage());
+        }
+    }
 
     @Transactional
     public IssueResponse create(UUID projectId, UUID reporterId, CreateIssueRequest req) {
@@ -184,6 +199,7 @@ public class IssueService {
         if (req.getDueDate() != null) {
             notificationService.notifyIssueDueSoon(issue, issue.getAssignee());
         }
+        notifyWatchersIssueUpdated(issue, actor);
         return response;
     }
 
@@ -200,7 +216,9 @@ public class IssueService {
             issue.setStatus(newStatus);
         }
 
-        return mapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+        notifyWatchersIssueUpdated(saved, actor);
+        return mapper.toResponse(saved);
     }
 
     @Transactional
@@ -221,7 +239,9 @@ public class IssueService {
             notificationService.notifyIssueAssigned(issue, actor, newAssignee);
         }
 
-        return mapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+        notifyWatchersIssueUpdated(saved, actor);
+        return mapper.toResponse(saved);
     }
 
     @Transactional
@@ -237,7 +257,9 @@ public class IssueService {
             issue.setPriority(newPriority);
         }
 
-        return mapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+        notifyWatchersIssueUpdated(saved, actor);
+        return mapper.toResponse(saved);
     }
 
     @Transactional
