@@ -51,6 +51,7 @@ public class IssueService {
     private final IssueMapper mapper;
     private final NotificationService notificationService;
     private final IssueWatcherRepository issueWatcherRepository;
+    private final com.example.jari.automation.service.AutomationService automationService;
 
     private void notifyWatchersIssueUpdated(Issue issue, User actor) {
         try {
@@ -196,12 +197,13 @@ public class IssueService {
             issue.getSprintIssues().add(si);
         }
 
-        IssueResponse response = mapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+        automationService.onIssueStatusChanged(saved, actor);
         if (req.getDueDate() != null) {
             notificationService.notifyIssueDueSoon(issue, issue.getAssignee());
         }
-        notifyWatchersIssueUpdated(issue, actor);
-        return response;
+        notifyWatchersIssueUpdated(saved, actor);
+        return mapper.toResponse(saved);
     }
 
     @Transactional
@@ -218,6 +220,7 @@ public class IssueService {
         }
 
         Issue saved = issueRepository.save(issue);
+        automationService.onIssueStatusChanged(saved, actor);
         notifyWatchersIssueUpdated(saved, actor);
         return mapper.toResponse(saved);
     }

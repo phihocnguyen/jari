@@ -20,6 +20,8 @@ public interface IssueRepository extends JpaRepository<Issue, UUID>, JpaSpecific
 
     Optional<Issue> findByIssueKeyIgnoreCase(String issueKey);
 
+    List<Issue> findByParentId(UUID parentId);
+
     @Modifying
     @Query("UPDATE Issue i SET i.parent = null WHERE i.parent.id = :issueId")
     void detachParentFromChildIssues(@Param("issueId") UUID issueId);
