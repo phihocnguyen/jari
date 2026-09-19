@@ -54,7 +54,7 @@ public class IssueWatcherService {
         User user = userRepository.findById(currentUserId)
             .orElseThrow(() -> new ResourceNotFoundException("User", currentUserId));
 
-        if (!issueWatcherRepository.existsByIdIssueIdAndByIdUserId(issueId, currentUserId)) {
+        if (!issueWatcherRepository.existsByIdIssueIdAndIdUserId(issueId, currentUserId)) {
             IssueWatcher watcher = IssueWatcher.builder()
                 .id(new IssueWatcherId(issueId, currentUserId))
                 .issue(issue)
@@ -69,7 +69,7 @@ public class IssueWatcherService {
         if (!issueRepository.existsById(issueId)) {
             throw new ResourceNotFoundException("Issue", issueId);
         }
-        issueWatcherRepository.deleteByIdIssueIdAndByIdUserId(issueId, currentUserId);
+        issueWatcherRepository.deleteById(new IssueWatcherId(issueId, currentUserId));
     }
 
     @Transactional(readOnly = true)

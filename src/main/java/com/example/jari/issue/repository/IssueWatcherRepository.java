@@ -11,7 +11,7 @@ import java.util.UUID;
 @Repository
 public interface IssueWatcherRepository extends JpaRepository<IssueWatcher, IssueWatcherId> {
 
-    boolean existsByIdIssueIdAndByIdUserId(UUID issueId, UUID userId);
+    boolean existsByIdIssueIdAndIdUserId(UUID issueId, UUID userId);
 
     long countByIdIssueId(UUID issueId);
 
@@ -19,5 +19,5 @@ public interface IssueWatcherRepository extends JpaRepository<IssueWatcher, Issu
 
     List<IssueWatcher> findByIdUserId(UUID userId);
 
-    void deleteByIdIssueIdAndByIdUserId(UUID issueId, UUID userId);
+    void deleteByIdIssueIdAndIdUserId(UUID issueId, UUID userId);
 }
