@@ -24,7 +24,8 @@ spring:
     properties:
       hibernate:
         default_schema: public
-        format_sql: true
+        format_sql: false
+        default_batch_fetch_size: 50
 
 #  data:
 #    redis:
