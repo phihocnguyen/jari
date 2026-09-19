@@ -371,11 +371,15 @@ public class IssueService {
                 .orElseThrow(() -> new ResourceNotFoundException("Sprint", sprintId));
             newSprintName = sprint.getName();
 
+            List<com.example.jari.sprint.entity.SprintIssue> existing = sprintIssueRepository.findByIdSprintIdOrderByPositionAsc(sprint.getId());
+            BigDecimal maxPos = existing.isEmpty() ? BigDecimal.valueOf(1000)
+                : existing.get(existing.size() - 1).getPosition().add(BigDecimal.valueOf(1000));
+
             var si = com.example.jari.sprint.entity.SprintIssue.builder()
                 .id(new com.example.jari.sprint.entity.SprintIssueId(sprint.getId(), issue.getId()))
                 .sprint(sprint)
                 .issue(issue)
-                .position(BigDecimal.valueOf(1000))
+                .position(maxPos)
                 .build();
             issue.getSprintIssues().add(si);
             issueRepository.save(issue);

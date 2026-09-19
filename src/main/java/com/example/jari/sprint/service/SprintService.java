@@ -141,6 +141,32 @@ public class SprintService {
         }).collect(Collectors.toList());
     }
 
+    @Transactional
+    public void reorderIssues(UUID sprintId, List<UUID> issueIds) {
+        if (issueIds == null || issueIds.isEmpty()) return;
+        List<SprintIssue> existing = sprintIssueRepository.findByIdSprintIdOrderByPositionAsc(sprintId);
+        java.util.Map<UUID, SprintIssue> map = existing.stream()
+            .collect(Collectors.toMap(si -> si.getIssue().getId(), si -> si));
+
+        for (int i = 0; i < issueIds.size(); i++) {
+            UUID issueId = issueIds.get(i);
+            SprintIssue si = map.get(issueId);
+            if (si != null) {
+                si.setPosition(BigDecimal.valueOf((i + 1) * 1000L));
+                sprintIssueRepository.save(si);
+            }
+        }
+    }
+
+    @Transactional
+    public void updateIssuePosition(UUID sprintId, UUID issueId, BigDecimal position) {
+        SprintIssueId id = new SprintIssueId(sprintId, issueId);
+        sprintIssueRepository.findById(id).ifPresent(si -> {
+            si.setPosition(position);
+            sprintIssueRepository.save(si);
+        });
+    }
+
     private Sprint findOrThrow(UUID id) {
         return sprintRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Sprint", id));

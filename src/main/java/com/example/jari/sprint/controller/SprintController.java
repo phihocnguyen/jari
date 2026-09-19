@@ -83,6 +83,22 @@ public class SprintController {
         return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Issue removed from sprint"));
     }
 
+    @Operation(summary = "Reorder issues in sprint", description = "Reorders the sprint backlog issues by a list of issue UUIDs in desired order.")
+    @PutMapping("/api/v1/sprints/{id}/issues/reorder")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> reorderIssues(
+            @PathVariable UUID id, @RequestBody ReorderSprintIssuesRequest req) {
+        sprintService.reorderIssues(id, req.getIssueIds());
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Sprint issues reordered"));
+    }
+
+    @Operation(summary = "Update issue position in sprint", description = "Updates the position of a specific issue within a sprint.")
+    @PatchMapping("/api/v1/sprints/{id}/issues/{issueId}/position")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> updateIssuePosition(
+            @PathVariable UUID id, @PathVariable UUID issueId, @RequestBody UpdateIssuePositionRequest req) {
+        sprintService.updateIssuePosition(id, issueId, req.getPosition());
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Issue position updated"));
+    }
+
     @Operation(summary = "Get Kanban board", description = "Returns the board view for the currently active sprint in the project, grouped by status columns.")
     @GetMapping("/api/v1/projects/{projectId}/board")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<BoardColumnResponse>>> getBoard(@PathVariable UUID projectId) {
