@@ -42,6 +42,12 @@ public class Project {
     @Enumerated(EnumType.STRING)
     private ProjectStatus status = ProjectStatus.ACTIVE;
 
+    @Column(name = "avatar_icon", length = 50)
+    private String avatarIcon;
+
+    @Column(name = "avatar_color", length = 20)
+    private String avatarColor;
+
     @CreationTimestamp @Column(name = "created_at", updatable = false) private OffsetDateTime createdAt;
     @UpdateTimestamp   @Column(name = "updated_at")                    private OffsetDateTime updatedAt;
 }

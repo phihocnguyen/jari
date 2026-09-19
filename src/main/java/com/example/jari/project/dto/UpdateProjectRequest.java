@@ -10,4 +10,6 @@ public class UpdateProjectRequest {
     private String description;
     private UUID leadId;
     private ProjectStatus status;
+    private String avatarIcon;
+    private String avatarColor;
 }

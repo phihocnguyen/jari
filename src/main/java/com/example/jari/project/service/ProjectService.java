@@ -55,6 +55,8 @@ public class ProjectService {
             .description(req.getDescription())
             .lead(lead)
             .projectType(req.getProjectType())
+            .avatarIcon(req.getAvatarIcon())
+            .avatarColor(req.getAvatarColor())
             .status(ProjectStatus.ACTIVE)
             .build());
 
@@ -98,6 +100,8 @@ public class ProjectService {
         if (req.getName()        != null) p.setName(req.getName());
         if (req.getDescription() != null) p.setDescription(req.getDescription());
         if (req.getStatus()      != null) p.setStatus(req.getStatus());
+        if (req.getAvatarIcon()  != null) p.setAvatarIcon(req.getAvatarIcon());
+        if (req.getAvatarColor() != null) p.setAvatarColor(req.getAvatarColor());
         if (req.getLeadId()      != null) {
             User lead = userRepository.findById(req.getLeadId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", req.getLeadId()));

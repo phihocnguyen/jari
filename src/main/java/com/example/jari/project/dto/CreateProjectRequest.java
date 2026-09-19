@@ -11,4 +11,6 @@ public class CreateProjectRequest {
     private String description;
     private UUID leadId;
     private ProjectType projectType = ProjectType.SOFTWARE;
+    private String avatarIcon;
+    private String avatarColor;
 }

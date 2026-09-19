@@ -18,5 +18,7 @@ public class ProjectResponse {
     private String defaultAssignee;
     private String projectType;
     private String status;
+    private String avatarIcon;
+    private String avatarColor;
     private OffsetDateTime createdAt;
 }
