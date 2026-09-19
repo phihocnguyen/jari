@@ -125,7 +125,7 @@ public class IssueService {
             filter.getKeyword());
 
         var pageable = PageRequest.of(filter.getPage(), filter.getSize(),
-            Sort.by(Sort.Direction.DESC, "createdAt"));
+            Sort.by(Sort.Direction.ASC, "position").and(Sort.by(Sort.Direction.DESC, "createdAt")));
 
         return PageResponse.of(issueRepository.findAll(spec, pageable).map(mapper::toResponse));
     }
@@ -444,6 +444,16 @@ public class IssueService {
         }
         return priorityRepository.findAll().stream().findFirst()
             .orElseThrow(() -> new ResourceNotFoundException("Priority", "default"));
+    }
+
+    @Transactional
+    public void reorderIssues(UUID projectId, List<UUID> issueIds) {
+        if (issueIds == null || issueIds.isEmpty()) return;
+        for (int i = 0; i < issueIds.size(); i++) {
+            UUID issueId = issueIds.get(i);
+            BigDecimal newPos = BigDecimal.valueOf((i + 1) * 1000L);
+            issueRepository.updatePosition(issueId, newPos);
+        }
     }
 
     private Issue    findOrThrow(UUID id)    { return issueRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Issue", id)); }

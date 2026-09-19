@@ -60,6 +60,10 @@ public class Issue {
     @Column(name = "due_date")
     private LocalDate dueDate;
 
+    @Column(precision = 20, scale = 6)
+    @Builder.Default
+    private BigDecimal position = BigDecimal.valueOf(1000);
+
     @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "issue_labels",

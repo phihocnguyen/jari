@@ -30,6 +30,10 @@ public interface IssueRepository extends JpaRepository<Issue, UUID>, JpaSpecific
     @Query("UPDATE Issue i SET i.release = null WHERE i.release.id = :releaseId")
     void detachReleaseFromIssues(@Param("releaseId") UUID releaseId);
 
+    @Modifying
+    @Query("UPDATE Issue i SET i.position = :position WHERE i.id = :id")
+    void updatePosition(@Param("id") UUID id, @Param("position") java.math.BigDecimal position);
+
     /**
      * Open issues whose due date is on/before {@code maxDueDate} (due soon or overdue),
      * excluding completed/cancelled work (status category 'DONE').

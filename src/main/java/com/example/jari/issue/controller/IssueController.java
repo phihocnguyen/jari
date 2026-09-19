@@ -137,6 +137,15 @@ public class IssueController {
         return ResponseEntity.ok(ApiResponse.ok(issueService.updateSprint(id, actorId, req.getSprintId())));
     }
 
+    @Operation(summary = "Reorder backlog / project issues", description = "Reorders backlog issues by a list of issue UUIDs in desired order.")
+    @PutMapping("/api/v1/projects/{projectId}/issues/reorder")
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> reorderIssues(
+            @PathVariable UUID projectId,
+            @RequestBody com.example.jari.issue.dto.ReorderIssuesRequest req) {
+        issueService.reorderIssues(projectId, req.getIssueIds());
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok("Issues reordered"));
+    }
+
     @Operation(summary = "Delete issue", description = "Deletes an issue permanently.")
     @DeleteMapping("/api/v1/issues/{id}")
     public ResponseEntity<com.example.jari.shared.response.ApiResponse<Void>> delete(@PathVariable UUID id) {

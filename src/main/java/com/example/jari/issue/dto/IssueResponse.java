@@ -28,6 +28,7 @@ public class IssueResponse {
     private UUID sprintId;
     private String sprintName;
     private BigDecimal storyPoints;
+    private BigDecimal position;
     private LocalDate startDate;
     private LocalDate dueDate;
     private List<LabelResponse> labels;
