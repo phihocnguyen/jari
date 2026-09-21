@@ -27,17 +27,27 @@ spring:
         format_sql: false
         default_batch_fetch_size: 50
 
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+
 #  data:
 #    redis:
 #      host: ${REDIS_HOST:localhost}
 #      port: ${REDIS_PORT:6379}
 #      timeout: 2000ms
 
-#  rabbitmq:
-#    host: ${RABBITMQ_HOST:localhost}
-#    port: ${RABBITMQ_PORT:5672}
-#    username: ${RABBITMQ_USER:guest}
-#    password: ${RABBITMQ_PASS:guest}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          multiplier: 2.0
 
   security:
     oauth2:
@@ -70,10 +80,32 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when-authorized
+    prometheus:
+      access: unrestricted
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      service.name: ${spring.application.name}
+      deployment.environment: ${OTEL_DEPLOYMENT_ENV:local}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+  otlp:
+    metrics:
+      export:
+        enabled: ${OTEL_METRICS_EXPORT_ENABLED:true}
+        url: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
+        step: 15s
 
 springdoc:
   api-docs:

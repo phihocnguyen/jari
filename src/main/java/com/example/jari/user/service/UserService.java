@@ -7,6 +7,7 @@ import com.example.jari.user.entity.User;
 import com.example.jari.user.mapper.UserMapper;
 import com.example.jari.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public UserResponse getProfile(UUID userId) {
@@ -38,7 +40,12 @@ public class UserService {
         if (request.getAvatarUrl() != null) {
             user.setAvatarUrl(request.getAvatarUrl());
         }
-        return userMapper.toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        // displayName nằm trong issue index (reporter/assignee name) -> reindex lại issue liên quan
+        if (request.getDisplayName() != null) {
+            eventPublisher.publishEvent(new com.example.jari.issue.search.UserIndexChangedEvent(saved.getId()));
+        }
+        return userMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)

@@ -18,6 +18,7 @@ import com.example.jari.workspace.entity.WorkspaceMemberId;
 import com.example.jari.workspace.repository.WorkspaceMemberRepository;
 import com.example.jari.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ public class ProjectService {
     private final RbacService rbacService;
     private final ProjectMapper mapper;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ProjectResponse create(UUID workspaceId, UUID requesterId, CreateProjectRequest req) {
@@ -107,7 +109,12 @@ public class ProjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", req.getLeadId()));
             p.setLead(lead);
         }
-        return mapper.toResponse(projectRepository.save(p));
+        Project saved = projectRepository.save(p);
+        // Name/status của project nằm trong issue index -> reindex lại issue của project
+        if (req.getName() != null || req.getStatus() != null) {
+            eventPublisher.publishEvent(new com.example.jari.issue.search.ProjectIndexChangedEvent(saved.getId()));
+        }
+        return mapper.toResponse(saved);
     }
 
     @Transactional

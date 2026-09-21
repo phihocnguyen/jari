@@ -34,6 +34,13 @@ public interface IssueRepository extends JpaRepository<Issue, UUID>, JpaSpecific
     @Query("UPDATE Issue i SET i.position = :position WHERE i.id = :id")
     void updatePosition(@Param("id") UUID id, @Param("position") java.math.BigDecimal position);
 
+    // Dùng cho write-through indexing (IssueIndexService via IndexerConsumer)
+    @Query("SELECT i.id FROM Issue i WHERE i.project.id = :projectId")
+    List<UUID> findIdsByProjectId(@Param("projectId") UUID projectId);
+
+    @Query("SELECT i.id FROM Issue i WHERE i.assignee.id = :userId OR i.reporter.id = :userId")
+    List<UUID> findIdsByUserId(@Param("userId") UUID userId);
+
     /**
      * Open issues whose due date is on/before {@code maxDueDate} (due soon or overdue),
      * excluding completed/cancelled work (status category 'DONE').

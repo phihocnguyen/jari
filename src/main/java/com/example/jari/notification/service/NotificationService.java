@@ -138,8 +138,8 @@ public class NotificationService {
 
     /**
      * Persists the notification inside the caller's transaction and publishes an event;
-     * the WebSocket push is done by NotificationPushListener after the transaction commits,
-     * so a rollback never sends a phantom notification.
+     * RabbitMQEventBridge forwards it to RabbitMQ after commit, and NotificationConsumer
+     * pushes over STOMP — a rollback never sends a phantom notification.
      */
     private void create(NotificationType type, User recipient, Project project, Issue issue,
                         Workspace workspace, String message) {

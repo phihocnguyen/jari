@@ -42,6 +42,8 @@ public class SecurityConfig {
         "/swagger-ui.html",
         "/actuator/health",
         "/actuator/info",
+        "/actuator/prometheus",
+        "/actuator/metrics",
         // WebSocket endpoint stays open at HTTP level; real auth happens on the
         // STOMP CONNECT frame (WebSocketAuthChannelInterceptor).
         "/ws/**",

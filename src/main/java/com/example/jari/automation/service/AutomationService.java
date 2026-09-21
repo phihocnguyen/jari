@@ -27,6 +27,7 @@ public class AutomationService {
 
     private final IssueAutomationLogRepository logRepository;
     private final IssueRepository issueRepository;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
     private final StatusRepository statusRepository;
     private final UserRepository userRepository;
 
@@ -71,6 +72,7 @@ public class AutomationService {
         if (isInProgress && issue.getAssignee() == null && actor != null) {
             issue.setAssignee(actor);
             issueRepository.save(issue);
+            eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issue.getId()));
             recordLog(issue, "Auto-assign on In Progress", "SUCCESS",
                 "Automatically assigned unassigned issue to " + actor.getDisplayName() + " upon moving to In Progress.");
         }
@@ -94,6 +96,7 @@ public class AutomationService {
                 if (doneStatus.isPresent()) {
                     parent.setStatus(doneStatus.get());
                     issueRepository.save(parent);
+                    eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(parent.getId()));
                     recordLog(parent, "Auto-close parent when subtasks complete", "SUCCESS",
                         "All subtasks are complete. Automatically transitioned parent issue " + parent.getIssueKey() + " to DONE.");
                 }
@@ -125,6 +128,7 @@ public class AutomationService {
                             .or(() -> statusRepository.findByName("DONE"));
                         doneStatus.ifPresent(issue::setStatus);
                         issueRepository.save(issue);
+                        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issue.getId()));
                         desc = "Evaluated all subtasks: all " + subtasks.size() + " subtasks are DONE. Updated parent to DONE.";
                     } else {
                         desc = "Evaluated subtasks: not all subtasks are DONE yet.";

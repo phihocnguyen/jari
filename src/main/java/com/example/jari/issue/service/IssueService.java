@@ -13,6 +13,7 @@ import com.example.jari.shared.response.PageResponse;
 import com.example.jari.user.entity.User;
 import com.example.jari.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,8 @@ public class IssueService {
     private final NotificationService notificationService;
     private final IssueWatcherRepository issueWatcherRepository;
     private final com.example.jari.automation.service.AutomationService automationService;
+    private final com.example.jari.issue.search.IssueSearchService issueSearchService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private void notifyWatchersIssueUpdated(Issue issue, User actor) {
         try {
@@ -110,11 +113,19 @@ public class IssueService {
             saved.getSprintIssues().add(si);
         }
 
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
         return mapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<IssueResponse> list(UUID projectId, IssueFilterRequest filter) {
+        // Đường chính: filter/search trên Elasticsearch (index jari-issues do Logstash indexer đồng bộ),
+        // DB chỉ hydrate entity theo ID. ES lỗi/không khả dụng thì fallback về JPA như cũ.
+        PageResponse<IssueResponse> searched = issueSearchService.search(projectId, filter);
+        if (searched != null) {
+            return searched;
+        }
+
         var spec = IssueSpecification.filter(
             projectId,
             filter.getStatusId(),
@@ -203,6 +214,7 @@ public class IssueService {
             notificationService.notifyIssueDueSoon(issue, issue.getAssignee());
         }
         notifyWatchersIssueUpdated(saved, actor);
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
         return mapper.toResponse(saved);
     }
 
@@ -222,6 +234,7 @@ public class IssueService {
         Issue saved = issueRepository.save(issue);
         automationService.onIssueStatusChanged(saved, actor);
         notifyWatchersIssueUpdated(saved, actor);
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
         return mapper.toResponse(saved);
     }
 
@@ -245,6 +258,7 @@ public class IssueService {
 
         Issue saved = issueRepository.save(issue);
         notifyWatchersIssueUpdated(saved, actor);
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
         return mapper.toResponse(saved);
     }
 
@@ -263,6 +277,7 @@ public class IssueService {
 
         Issue saved = issueRepository.save(issue);
         notifyWatchersIssueUpdated(saved, actor);
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
         return mapper.toResponse(saved);
     }
 
@@ -274,6 +289,7 @@ public class IssueService {
         issue.setDueDate(req.getDueDate());
         IssueResponse response = mapper.toResponse(issueRepository.save(issue));
         notificationService.notifyIssueDueSoon(issue, issue.getAssignee());
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issue.getId()));
         return response;
     }
 
@@ -301,7 +317,9 @@ public class IssueService {
             newParent != null ? newParent.getIssueKey() : null);
         issue.setParent(newParent);
 
-        return mapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        return mapper.toResponse(saved);
     }
 
     @Transactional
@@ -311,7 +329,9 @@ public class IssueService {
         if (labelIds != null && !labelIds.isEmpty()) {
             issue.getLabels().addAll(labelRepository.findAllById(labelIds));
         }
-        return mapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        return mapper.toResponse(saved);
     }
 
     @Transactional
@@ -321,7 +341,9 @@ public class IssueService {
         if (componentIds != null && !componentIds.isEmpty()) {
             issue.getComponents().addAll(componentRepository.findAllById(componentIds));
         }
-        return mapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        return mapper.toResponse(saved);
     }
 
     @Transactional
@@ -334,7 +356,9 @@ public class IssueService {
         } else {
             issue.setRelease(null);
         }
-        return mapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        return mapper.toResponse(saved);
     }
 
     @Transactional
@@ -389,6 +413,7 @@ public class IssueService {
             historyService.record(issue, actor, "sprint", oldSprintName, newSprintName);
         }
 
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issue.getId()));
         return mapper.toResponse(issue);
     }
 
@@ -400,6 +425,7 @@ public class IssueService {
         historyRepository.deleteByIssueId(id);
         issue.getSprintIssues().clear();
         issueRepository.delete(issue);
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.delete(id));
     }
 
     public Status resolveStatusByNameOrId(String statusStr, UUID statusId) {
@@ -454,6 +480,8 @@ public class IssueService {
             BigDecimal newPos = BigDecimal.valueOf((i + 1) * 1000L);
             issueRepository.updatePosition(issueId, newPos);
         }
+        // updatePosition là bulk JPQL (bỏ qua Hibernate dirty checking) nên phải index lại thủ công
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issueIds));
     }
 
     private Issue    findOrThrow(UUID id)    { return issueRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Issue", id)); }

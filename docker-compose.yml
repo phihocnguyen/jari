@@ -1,0 +1,30 @@
+name: jari
+
+services:
+  rabbitmq:
+    image: rabbitmq:4.0-management
+    container_name: jari-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      - jari
+
+volumes:
+  rabbitmq-data:
+
+networks:
+  jari:
+    name: jari
+    driver: bridge

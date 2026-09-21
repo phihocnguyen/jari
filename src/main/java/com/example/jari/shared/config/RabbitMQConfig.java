@@ -1,26 +1,36 @@
 package com.example.jari.shared.config;
 
-// import org.springframework.amqp.core.*;
-// import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-// import org.springframework.amqp.rabbit.core.RabbitTemplate;
-// import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-// import org.springframework.context.annotation.Bean;
-// import org.springframework.context.annotation.Configuration;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-// =========================================================================
-// Tạm thời chưa dùng RabbitMQ - Comment lại cấu hình RabbitMQConfig:
-// =========================================================================
-// @Configuration
+@Configuration
 public class RabbitMQConfig {
 
-    public static final String NOTIFICATION_EXCHANGE = "jari.notifications";
-    public static final String NOTIFICATION_QUEUE    = "jari.notifications.queue";
-    public static final String NOTIFICATION_ROUTING  = "notification.#";
+    public static final String EVENTS_EXCHANGE = "jari.events";
 
-    /*
+    public static final String NOTIFICATION_QUEUE   = "jari.notifications.queue";
+    public static final String NOTIFICATION_ROUTING = "notification.#";
+
+    public static final String INDEXER_QUEUE   = "jari.indexer.queue";
+    public static final String INDEXER_ROUTING = "indexer.#";
+
+    public static final String RK_NOTIFICATION_USER = "notification.user";
+    public static final String RK_INDEXER_ISSUE     = "indexer.issue";
+    public static final String RK_INDEXER_PROJECT   = "indexer.project";
+    public static final String RK_INDEXER_USER      = "indexer.user";
+
     @Bean
-    public TopicExchange notificationExchange() {
-        return ExchangeBuilder.topicExchange(NOTIFICATION_EXCHANGE).durable(true).build();
+    public TopicExchange eventsExchange() {
+        return new TopicExchange(EVENTS_EXCHANGE, true, false);
     }
 
     @Bean
@@ -29,20 +39,29 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding notificationBinding(Queue notificationQueue, TopicExchange notificationExchange) {
-        return BindingBuilder.bind(notificationQueue).to(notificationExchange).with(NOTIFICATION_ROUTING);
+    public Queue indexerQueue() {
+        return QueueBuilder.durable(INDEXER_QUEUE).build();
     }
 
     @Bean
-    public Jackson2JsonMessageConverter messageConverter() {
+    public Binding notificationBinding(Queue notificationQueue, TopicExchange eventsExchange) {
+        return BindingBuilder.bind(notificationQueue).to(eventsExchange).with(NOTIFICATION_ROUTING);
+    }
+
+    @Bean
+    public Binding indexerBinding(Queue indexerQueue, TopicExchange eventsExchange) {
+        return BindingBuilder.bind(indexerQueue).to(eventsExchange).with(INDEXER_ROUTING);
+    }
+
+    @Bean
+    public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory factory, Jackson2JsonMessageConverter converter) {
+    public RabbitTemplate rabbitTemplate(ConnectionFactory factory, MessageConverter jsonMessageConverter) {
         RabbitTemplate template = new RabbitTemplate(factory);
-        template.setMessageConverter(converter);
+        template.setMessageConverter(jsonMessageConverter);
         return template;
     }
-    */
 }
