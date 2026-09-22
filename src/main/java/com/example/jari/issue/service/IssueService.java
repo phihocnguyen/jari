@@ -8,8 +8,11 @@ import com.example.jari.issue.spec.IssueSpecification;
 import com.example.jari.notification.service.NotificationService;
 import com.example.jari.project.entity.Project;
 import com.example.jari.project.repository.ProjectRepository;
+import com.example.jari.shared.cache.CacheNames;
+import com.example.jari.shared.cache.ReadCacheEviction;
 import com.example.jari.shared.exception.ResourceNotFoundException;
 import com.example.jari.shared.response.PageResponse;
+import org.springframework.cache.annotation.Cacheable;
 import com.example.jari.user.entity.User;
 import com.example.jari.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +58,11 @@ public class IssueService {
     private final com.example.jari.automation.service.AutomationService automationService;
     private final com.example.jari.issue.search.IssueSearchService issueSearchService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ReadCacheEviction readCacheEviction;
+
+    private void evictReadCaches(Issue issue) {
+        readCacheEviction.evictIssue(issue.getId(), issue.getIssueKey(), issue.getProject().getId());
+    }
 
     private void notifyWatchersIssueUpdated(Issue issue, User actor) {
         try {
@@ -114,9 +122,11 @@ public class IssueService {
         }
 
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
         return mapper.toResponse(saved);
     }
 
+    @Cacheable(value = CacheNames.ISSUE_LIST, key = "T(com.example.jari.shared.cache.IssueFilterCacheKey).of(#projectId, #filter)")
     @Transactional(readOnly = true)
     public PageResponse<IssueResponse> list(UUID projectId, IssueFilterRequest filter) {
         // Đường chính: filter/search trên Elasticsearch (index jari-issues do Logstash indexer đồng bộ),
@@ -141,11 +151,13 @@ public class IssueService {
         return PageResponse.of(issueRepository.findAll(spec, pageable).map(mapper::toResponse));
     }
 
+    @Cacheable(value = CacheNames.ISSUE_DETAIL, key = "#id")
     @Transactional(readOnly = true)
     public IssueResponse get(UUID id) {
         return mapper.toResponse(findOrThrow(id));
     }
 
+    @Cacheable(value = CacheNames.ISSUE_DETAIL, key = "#idOrKey")
     @Transactional(readOnly = true)
     public IssueResponse getByIdOrKey(String idOrKey) {
         Issue issue;
@@ -215,6 +227,7 @@ public class IssueService {
         }
         notifyWatchersIssueUpdated(saved, actor);
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
         return mapper.toResponse(saved);
     }
 
@@ -235,6 +248,7 @@ public class IssueService {
         automationService.onIssueStatusChanged(saved, actor);
         notifyWatchersIssueUpdated(saved, actor);
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
         return mapper.toResponse(saved);
     }
 
@@ -259,6 +273,7 @@ public class IssueService {
         Issue saved = issueRepository.save(issue);
         notifyWatchersIssueUpdated(saved, actor);
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
         return mapper.toResponse(saved);
     }
 
@@ -278,6 +293,7 @@ public class IssueService {
         Issue saved = issueRepository.save(issue);
         notifyWatchersIssueUpdated(saved, actor);
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
         return mapper.toResponse(saved);
     }
 
@@ -287,10 +303,11 @@ public class IssueService {
         // Both fields are applied as given; null clears the date
         issue.setStartDate(req.getStartDate());
         issue.setDueDate(req.getDueDate());
-        IssueResponse response = mapper.toResponse(issueRepository.save(issue));
-        notificationService.notifyIssueDueSoon(issue, issue.getAssignee());
-        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issue.getId()));
-        return response;
+        Issue saved = issueRepository.save(issue);
+        notificationService.notifyIssueDueSoon(saved, saved.getAssignee());
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
+        return mapper.toResponse(saved);
     }
 
     @Transactional
@@ -319,6 +336,7 @@ public class IssueService {
 
         Issue saved = issueRepository.save(issue);
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
         return mapper.toResponse(saved);
     }
 
@@ -331,6 +349,7 @@ public class IssueService {
         }
         Issue saved = issueRepository.save(issue);
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
         return mapper.toResponse(saved);
     }
 
@@ -343,6 +362,7 @@ public class IssueService {
         }
         Issue saved = issueRepository.save(issue);
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
         return mapper.toResponse(saved);
     }
 
@@ -358,6 +378,7 @@ public class IssueService {
         }
         Issue saved = issueRepository.save(issue);
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
+        evictReadCaches(saved);
         return mapper.toResponse(saved);
     }
 
@@ -414,12 +435,15 @@ public class IssueService {
         }
 
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issue.getId()));
+        evictReadCaches(issue);
+        readCacheEviction.evictBoard(issue.getProject().getId());
         return mapper.toResponse(issue);
     }
 
     @Transactional
     public void delete(UUID id) {
         Issue issue = findOrThrow(id);
+        evictReadCaches(issue);
         issueRepository.detachParentFromChildIssues(id);
         commentRepository.deleteByIssueId(id);
         historyRepository.deleteByIssueId(id);

@@ -4,6 +4,7 @@ import com.example.jari.issue.repository.IssueTypeRepository;
 import com.example.jari.issue.repository.PriorityRepository;
 import com.example.jari.issue.repository.StatusRepository;
 import com.example.jari.reference.dto.ReferenceItemResponse;
+import com.example.jari.shared.cache.CacheNames;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ public class ReferenceService {
     private final StatusRepository statusRepository;
     private final PriorityRepository priorityRepository;
 
-    @Cacheable("ref:issue-types")
+    @Cacheable(CacheNames.REF_ISSUE_TYPES)
     @Transactional(readOnly = true)
     public List<ReferenceItemResponse> getIssueTypes() {
         return issueTypeRepository.findAll().stream()
@@ -28,7 +29,7 @@ public class ReferenceService {
             .toList();
     }
 
-    @Cacheable("ref:statuses")
+    @Cacheable(CacheNames.REF_STATUSES)
     @Transactional(readOnly = true)
     public List<ReferenceItemResponse> getStatuses() {
         return statusRepository.findAll().stream()
@@ -37,7 +38,7 @@ public class ReferenceService {
             .toList();
     }
 
-    @Cacheable("ref:priorities")
+    @Cacheable(CacheNames.REF_PRIORITIES)
     @Transactional(readOnly = true)
     public List<ReferenceItemResponse> getPriorities() {
         return priorityRepository.findAllOrderByLevel().stream()

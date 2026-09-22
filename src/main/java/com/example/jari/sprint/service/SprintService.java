@@ -6,9 +6,12 @@ import com.example.jari.issue.repository.IssueRepository;
 import com.example.jari.issue.repository.StatusRepository;
 import com.example.jari.project.entity.Project;
 import com.example.jari.project.repository.ProjectRepository;
+import com.example.jari.shared.cache.CacheNames;
+import com.example.jari.shared.cache.ReadCacheEviction;
 import com.example.jari.shared.exception.ApiException;
 import com.example.jari.shared.exception.ConflictException;
 import com.example.jari.shared.exception.ResourceNotFoundException;
+import org.springframework.cache.annotation.Cacheable;
 import com.example.jari.sprint.dto.*;
 import com.example.jari.sprint.entity.*;
 import com.example.jari.sprint.mapper.SprintMapper;
@@ -35,6 +38,7 @@ public class SprintService {
     private final StatusRepository statusRepository;
     private final SprintMapper sprintMapper;
     private final IssueMapper issueMapper;
+    private final ReadCacheEviction readCacheEviction;
 
     @Transactional
     public SprintResponse create(UUID projectId, CreateSprintRequest req) {
@@ -82,7 +86,9 @@ public class SprintService {
             throw new ConflictException("A sprint is already active in this project");
         }
         sprint.setStatus(SprintStatus.ACTIVE);
-        return sprintMapper.toResponse(sprintRepository.save(sprint));
+        Sprint saved = sprintRepository.save(sprint);
+        readCacheEviction.evictBoard(saved.getProject().getId());
+        return sprintMapper.toResponse(saved);
     }
 
     @Transactional
@@ -92,7 +98,9 @@ public class SprintService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_STATE", "Only active sprints can be completed");
         }
         sprint.setStatus(SprintStatus.COMPLETED);
-        return sprintMapper.toResponse(sprintRepository.save(sprint));
+        Sprint saved = sprintRepository.save(sprint);
+        readCacheEviction.evictBoard(saved.getProject().getId());
+        return sprintMapper.toResponse(saved);
     }
 
     @Transactional
@@ -110,13 +118,17 @@ public class SprintService {
 
         sprintIssueRepository.save(SprintIssue.builder()
             .id(id).sprint(sprint).issue(issue).position(maxPos).build());
+        readCacheEviction.evictBoard(sprint.getProject().getId());
     }
 
     @Transactional
     public void removeIssue(UUID sprintId, UUID issueId) {
+        Sprint sprint = findOrThrow(sprintId);
         sprintIssueRepository.deleteById(new SprintIssueId(sprintId, issueId));
+        readCacheEviction.evictBoard(sprint.getProject().getId());
     }
 
+    @Cacheable(value = CacheNames.PROJECT_BOARD, key = "#projectId")
     @Transactional(readOnly = true)
     public List<BoardColumnResponse> getBoard(UUID projectId) {
         Sprint activeSprint = sprintRepository.findByProjectIdAndStatus(projectId, SprintStatus.ACTIVE)
@@ -156,15 +168,18 @@ public class SprintService {
                 sprintIssueRepository.save(si);
             }
         }
+        readCacheEviction.evictBoard(findOrThrow(sprintId).getProject().getId());
     }
 
     @Transactional
     public void updateIssuePosition(UUID sprintId, UUID issueId, BigDecimal position) {
+        Sprint sprint = findOrThrow(sprintId);
         SprintIssueId id = new SprintIssueId(sprintId, issueId);
         sprintIssueRepository.findById(id).ifPresent(si -> {
             si.setPosition(position);
             sprintIssueRepository.save(si);
         });
+        readCacheEviction.evictBoard(sprint.getProject().getId());
     }
 
     private Sprint findOrThrow(UUID id) {

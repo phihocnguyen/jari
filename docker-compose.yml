@@ -21,6 +21,20 @@ services:
     networks:
       - jari
 
+  redis:
+    image: redis:7-alpine
+    container_name: jari-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - jari
+
   rabbitmq:
     image: rabbitmq:4.0-management
     container_name: jari-rabbitmq

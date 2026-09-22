@@ -6,8 +6,10 @@ import com.example.jari.issue.entity.IssueHistory;
 import com.example.jari.issue.repository.IssueHistoryRepository;
 import com.example.jari.issue.repository.IssueRepository;
 import com.example.jari.project.repository.ProjectRepository;
+import com.example.jari.shared.cache.CacheNames;
 import com.example.jari.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class SummaryService {
     @PersistenceContext
     private EntityManager em;
 
+    @Cacheable(value = CacheNames.PROJECT_SUMMARY, key = "#projectId")
     @Transactional(readOnly = true)
     public ProjectSummaryResponse getSummary(UUID projectId) {
         projectRepository.findById(projectId)
