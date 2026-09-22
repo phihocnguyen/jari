@@ -64,8 +64,8 @@ public class IssueSearchService {
                 .map(UUID::fromString)
                 .toList();
 
-            Map<UUID, Issue> byId = issueRepository.findAllById(ids).stream()
-                .collect(Collectors.toMap(Issue::getId, Function.identity()));
+            Map<UUID, Issue> byId = issueRepository.findAllWithDetailsByIdIn(ids).stream()
+                .collect(Collectors.toMap(Issue::getId, Function.identity(), (a, b) -> a, java.util.LinkedHashMap::new));
 
             List<IssueResponse> content = ids.stream()
                 .map(byId::get)

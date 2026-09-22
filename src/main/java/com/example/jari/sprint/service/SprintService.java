@@ -135,7 +135,7 @@ public class SprintService {
             .orElseThrow(() -> new ResourceNotFoundException("Active Sprint", projectId));
 
         List<SprintIssue> sprintIssues = sprintIssueRepository
-            .findByIdSprintIdOrderByPositionAsc(activeSprint.getId());
+            .findBySprintIdWithIssues(activeSprint.getId());
 
         var statuses = statusRepository.findAll();
 

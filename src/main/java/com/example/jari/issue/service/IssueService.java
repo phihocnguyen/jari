@@ -154,7 +154,7 @@ public class IssueService {
     @Cacheable(value = CacheNames.ISSUE_DETAIL, key = "#id")
     @Transactional(readOnly = true)
     public IssueResponse get(UUID id) {
-        return mapper.toResponse(findOrThrow(id));
+        return mapper.toResponse(findDetailedOrThrow(id));
     }
 
     @Cacheable(value = CacheNames.ISSUE_DETAIL, key = "#idOrKey")
@@ -162,10 +162,9 @@ public class IssueService {
     public IssueResponse getByIdOrKey(String idOrKey) {
         Issue issue;
         try {
-            issue = findOrThrow(UUID.fromString(idOrKey));
+            issue = findDetailedOrThrow(UUID.fromString(idOrKey));
         } catch (IllegalArgumentException ex) {
-            // Not a UUID — treat as issue key like "MOBILE-5"
-            issue = issueRepository.findByIssueKeyIgnoreCase(idOrKey)
+            issue = issueRepository.findDetailedByIssueKeyIgnoreCase(idOrKey)
                 .orElseThrow(() -> new ResourceNotFoundException("Issue", idOrKey));
         }
         return mapper.toResponse(issue);
@@ -508,7 +507,13 @@ public class IssueService {
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issueIds));
     }
 
-    private Issue    findOrThrow(UUID id)    { return issueRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Issue", id)); }
+    private Issue findOrThrow(UUID id) {
+        return issueRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Issue", id));
+    }
+
+    private Issue findDetailedOrThrow(UUID id) {
+        return issueRepository.findDetailedById(id).orElseThrow(() -> new ResourceNotFoundException("Issue", id));
+    }
     private User     resolveUser(UUID id)    { return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User", id)); }
     private IssueType resolveIssueType(UUID id) { return issueTypeRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("IssueType", id)); }
     private Status    resolveStatus(UUID id)    { return statusRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Status", id)); }

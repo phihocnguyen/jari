@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,4 +51,46 @@ public interface IssueRepository extends JpaRepository<Issue, UUID>, JpaSpecific
            "WHERE i.dueDate IS NOT NULL AND i.dueDate <= :maxDueDate " +
            "AND i.assignee IS NOT NULL AND (i.status IS NULL OR i.status.category <> 'DONE')")
     List<Issue> findIssuesDueSoon(@Param("maxDueDate") LocalDate maxDueDate);
+
+    @Query("""
+        SELECT DISTINCT i FROM Issue i
+        LEFT JOIN FETCH i.project
+        LEFT JOIN FETCH i.issueType
+        LEFT JOIN FETCH i.status
+        LEFT JOIN FETCH i.priority
+        LEFT JOIN FETCH i.reporter
+        LEFT JOIN FETCH i.assignee
+        LEFT JOIN FETCH i.parent
+        LEFT JOIN FETCH i.release
+        WHERE i.id IN :ids
+        """)
+    List<Issue> findAllWithDetailsByIdIn(@Param("ids") Collection<UUID> ids);
+
+    @Query("""
+        SELECT i FROM Issue i
+        LEFT JOIN FETCH i.project
+        LEFT JOIN FETCH i.issueType
+        LEFT JOIN FETCH i.status
+        LEFT JOIN FETCH i.priority
+        LEFT JOIN FETCH i.reporter
+        LEFT JOIN FETCH i.assignee
+        LEFT JOIN FETCH i.parent
+        LEFT JOIN FETCH i.release
+        WHERE i.id = :id
+        """)
+    Optional<Issue> findDetailedById(@Param("id") UUID id);
+
+    @Query("""
+        SELECT i FROM Issue i
+        LEFT JOIN FETCH i.project
+        LEFT JOIN FETCH i.issueType
+        LEFT JOIN FETCH i.status
+        LEFT JOIN FETCH i.priority
+        LEFT JOIN FETCH i.reporter
+        LEFT JOIN FETCH i.assignee
+        LEFT JOIN FETCH i.parent
+        LEFT JOIN FETCH i.release
+        WHERE LOWER(i.issueKey) = LOWER(:issueKey)
+        """)
+    Optional<Issue> findDetailedByIssueKeyIgnoreCase(@Param("issueKey") String issueKey);
 }

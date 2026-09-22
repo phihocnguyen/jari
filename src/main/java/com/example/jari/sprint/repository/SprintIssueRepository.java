@@ -13,6 +13,19 @@ import java.util.UUID;
 public interface SprintIssueRepository extends JpaRepository<SprintIssue, SprintIssueId> {
     List<SprintIssue> findByIdSprintIdOrderByPositionAsc(UUID sprintId);
 
+    @Query("""
+        SELECT si FROM SprintIssue si
+        JOIN FETCH si.issue i
+        JOIN FETCH i.status
+        JOIN FETCH i.issueType
+        JOIN FETCH i.priority
+        LEFT JOIN FETCH i.assignee
+        LEFT JOIN FETCH i.reporter
+        WHERE si.id.sprintId = :sprintId
+        ORDER BY si.position ASC
+        """)
+    List<SprintIssue> findBySprintIdWithIssues(@Param("sprintId") UUID sprintId);
+
     @Modifying
     @Query("DELETE FROM SprintIssue si WHERE si.id.issueId = :issueId")
     void deleteByIssueId(@Param("issueId") UUID issueId);
