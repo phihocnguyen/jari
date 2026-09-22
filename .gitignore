@@ -35,3 +35,5 @@ build/
 ### Infrastructure ###
 .env
 monitoring/.env
+k6/.env
+k6/results/

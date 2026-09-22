@@ -118,6 +118,16 @@ services:
     networks:
       - monitoring
 
+  # Chạy benchmark: docker compose --profile perf run --rm k6 run benchmark.js
+  k6:
+    image: grafana/k6:${K6_VERSION:-0.57.0}
+    profiles: [perf]
+    network_mode: host
+    volumes:
+      - ../k6:/scripts:ro
+    working_dir: /scripts
+    entrypoint: [k6]
+
   # Prometheus scrape /actuator/prometheus từ backend (Micrometer — http.server.requests latency)
   prometheus:
     image: prom/prometheus:v3.0.1
