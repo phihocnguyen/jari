@@ -21,6 +21,21 @@ export function checkOk(res, name) {
 
 export function checkJson(res, name) {
   return check(res, {
+    [`${name} status 2xx`]: (r) => r.status >= 200 && r.status < 300,
+    [`${name} has data`]: (r) => {
+      try {
+        const body = r.json();
+        return body && body.data !== undefined;
+      } catch {
+        return false;
+      }
+    },
+  });
+}
+
+export function checkCreated(res, name) {
+  return check(res, {
+    [`${name} status 201`]: (r) => r.status === 201,
     [`${name} has data`]: (r) => {
       try {
         const body = r.json();

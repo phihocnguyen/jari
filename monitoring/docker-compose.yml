@@ -118,7 +118,9 @@ services:
     networks:
       - monitoring
 
-  # Chạy benchmark: docker compose --profile perf run --rm k6 run benchmark.js
+  # Dev baseline:  docker compose --profile perf run --rm k6 run benchmark.js
+  # Stress load:   docker compose --profile perf run --rm k6 run load.js
+  # Find maximum:  docker compose --profile perf run --rm k6 run capacity.js
   k6:
     image: grafana/k6:${K6_VERSION:-0.57.0}
     profiles: [perf]

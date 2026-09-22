@@ -1,13 +1,16 @@
 import http from 'k6/http';
 import { sleep } from 'k6';
-import { authHeaders, checkJson } from '../lib/http.js';
+import { getConfig } from '../lib/config.js';
+import { authHeaders, checkCreated } from '../lib/http.js';
 import { readDashboard } from './read-dashboard.js';
 
 /**
- * ~80% read (dashboard flow), ~20% tạo issue mới.
+ * Chủ yếu read; tỉ lệ write cấu hình qua K6_WRITE_RATIO (mặc định 10%).
  */
 export function mixedWorkload(data) {
-  if (Math.random() < 0.8) {
+  const { writeRatio } = getConfig();
+
+  if (Math.random() >= writeRatio) {
     readDashboard(data);
     return;
   }
@@ -31,8 +34,9 @@ export function mixedWorkload(data) {
   const create = http.post(`${baseUrl}/api/v1/projects/${projectId}/issues`, payload, {
     headers,
     tags: { name: 'POST /projects/issues' },
+    timeout: '30s',
   });
-  checkJson(create, 'create issue');
+  checkCreated(create, 'create issue');
 
-  sleep(Math.random() * 1.5 + 0.5);
+  sleep(Math.random() + 0.5);
 }
