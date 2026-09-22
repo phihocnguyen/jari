@@ -3,9 +3,9 @@ spring:
     name: jari
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://ep-lucky-darkness-b3xidcq8-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require}
-    username: ${DB_USER:neondb_owner}
-    password: ${DB_PASS:npg_yJP7q6zwXHQn}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/jari}
+    username: ${DB_USER:jari}
+    password: ${DB_PASS:jari}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
