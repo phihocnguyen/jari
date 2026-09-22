@@ -1,0 +1,141 @@
+name: jari-monitoring
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_VERSION:-9.1.2}
+    container_name: jari-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      # Tắt internal monitoring index — tiết kiệm disk trên dev
+      - xpack.monitoring.collection.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - bootstrap.memory_lock=true
+      # Dev: không block index khi ổ đĩa host gần đầy (mặc định flood_stage=95%)
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      - monitoring
+
+  # One-shot: cài index template (mapping cho jari-issues) trước khi Logstash ghi index đầu tiên
+  elasticsearch-init:
+    image: curlimages/curl:8.11.1
+    container_name: jari-elasticsearch-init
+    restart: "no"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./elasticsearch/templates:/templates:ro
+    entrypoint:
+      - sh
+      - -c
+      - |
+        for f in /templates/*.json; do
+          name=$$(basename "$$f" .json)
+          echo "Installing index template: $$name"
+          curl -fsS -X PUT "http://elasticsearch:9200/_index_template/$$name" \
+            -H 'Content-Type: application/json' -d @"$$f" || exit 1
+        done
+        echo 'Index templates installed'
+    networks:
+      - monitoring
+
+  logstash:
+    build:
+      context: ./logstash
+      args:
+        ELK_VERSION: ${ELK_VERSION:-9.1.2}
+    image: jari-logstash:${ELK_VERSION:-9.1.2}
+    container_name: jari-logstash
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      elasticsearch-init:
+        condition: service_completed_successfully
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+      - XPACK_MONITORING_ENABLED=false
+      # Kết nối DB cho indexer pipeline (xem .env)
+      - JDBC_URL=${JARI_JDBC_URL}
+      - JDBC_USER=${JARI_DB_USER}
+      - JDBC_PASSWORD=${JARI_DB_PASS}
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      # Filebeat gửi log về đây (beats input)
+      - "5044:5044"
+    networks:
+      - monitoring
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELK_VERSION:-9.1.2}
+    container_name: jari-kibana
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - XPACK_MONITORING_ENABLED=false
+    ports:
+      - "5601:5601"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:5601/api/status || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+    networks:
+      - monitoring
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${ELK_VERSION:-9.1.2}
+    container_name: jari-filebeat
+    restart: unless-stopped
+    user: root
+    depends_on:
+      - logstash
+    command: filebeat -e --strict.perms=false
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      # Đọc log stdout/stderr của các container khác qua docker daemon
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - monitoring
+
+  # Prometheus scrape /actuator/prometheus từ backend (Micrometer — http.server.requests latency)
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    container_name: jari-prometheus
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+
+volumes:
+  elasticsearch-data:
+
+networks:
+  monitoring:
+    name: jari-monitoring
+    driver: bridge

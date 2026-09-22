@@ -1,0 +1,26 @@
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+      hints.default_config:
+        type: container
+        paths:
+          - /var/lib/docker/containers/${data.container.id}/*.log
+
+# Gắn thêm metadata của container (tên, image, label...) vào từng log event
+processors:
+  - add_docker_metadata:
+      host: "unix:///var/run/docker.sock"
+  - drop_event:
+      when:
+        equals:
+          container.name: "jari-filebeat"
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+# Nếu đã có Logstash/IoC quản lý template thì để false; Logstash sẽ index theo tên trong pipeline
+setup.template.enabled: false
+setup.ilm.enabled: false
+
+logging.level: info

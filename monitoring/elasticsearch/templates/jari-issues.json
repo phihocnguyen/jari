@@ -1,0 +1,46 @@
+{
+  "index_patterns": ["jari-issues"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "mappings": {
+      "properties": {
+        "id":                { "type": "keyword" },
+        "issue_key":         { "type": "keyword" },
+        "issue_key_lower":   { "type": "keyword" },
+        "title":             { "type": "text" },
+        "title_lower":       { "type": "keyword" },
+        "description":       { "type": "text" },
+        "issue_type":        { "type": "keyword" },
+        "issue_type_id":     { "type": "keyword" },
+        "status":            { "type": "keyword" },
+        "status_id":         { "type": "keyword" },
+        "status_category":   { "type": "keyword" },
+        "priority":          { "type": "keyword" },
+        "priority_id":       { "type": "keyword" },
+        "release_id":        { "type": "keyword" },
+        "project_id":        { "type": "keyword" },
+        "project_name":      { "type": "keyword" },
+        "project_key":       { "type": "keyword" },
+        "workspace_id":      { "type": "keyword" },
+        "workspace_name":    { "type": "keyword" },
+        "reporter_id":       { "type": "keyword" },
+        "reporter_username": { "type": "keyword" },
+        "reporter_name":     { "type": "keyword" },
+        "assignee_id":       { "type": "keyword" },
+        "assignee_username": { "type": "keyword" },
+        "assignee_name":     { "type": "keyword" },
+        "sprint_ids":        { "type": "keyword" },
+        "sprint_names":      { "type": "text" },
+        "story_points":      { "type": "double" },
+        "position":          { "type": "double" },
+        "due_date":          { "type": "date" },
+        "start_date":        { "type": "date" },
+        "created_at":        { "type": "date" },
+        "updated_at":        { "type": "date" }
+      }
+    }
+  }
+}
