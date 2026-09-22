@@ -139,6 +139,10 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
     ports:
       - "9090:9090"
     networks:

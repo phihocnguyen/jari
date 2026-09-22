@@ -115,6 +115,13 @@
 			<artifactId>spring-boot-starter-amqp</artifactId>
 		</dependency>
 
+		<!-- JSON logs cho ELK/Filebeat (profile docker) -->
+		<dependency>
+			<groupId>net.logstash.logback</groupId>
+			<artifactId>logstash-logback-encoder</artifactId>
+			<version>8.1</version>
+		</dependency>
+
 		<!-- ======================== OPENAPI ======================== -->
 		<dependency>
 			<groupId>org.springdoc</groupId>

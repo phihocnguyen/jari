@@ -124,8 +124,45 @@ Backend truy vấn ES làm đường chính cho list issue, và **ghi vào ES ng
 - Kết nối: `spring.elasticsearch.uris` trong `application.yaml` (default `http://localhost:9200`; backend chạy trong Docker cùng network `jari-monitoring` thì set `ELASTICSEARCH_URIS=http://elasticsearch:9200`).
 - CRUD vẫn ghi vào Postgres như trước — Postgres vẫn là source of truth.
 
-## 7. Notes
+## 7. Prometheus — API latency & throughput
+
+Prometheus scrape `http://host.docker.internal:8080/actuator/prometheus` (Micrometer).
+
+Recording rules (`prometheus/recording_rules.yml`):
+
+| Metric | Ý nghĩa |
+|---|---|
+| `jari:http_request_duration_seconds:p95` | p95 latency theo uri/method |
+| `jari:http_request_duration_seconds:avg` | avg latency theo uri/method |
+| `jari:http_requests:rate5m` | req/s theo uri/method/status |
+
+Ví dụ query trên http://localhost:9090:
+
+```promql
+jari:http_request_duration_seconds:p95{uri=~"/api/v1/projects/.*/issues"}
+cache_gets_total
+hikaricp_connections_active
+```
+
+## 8. Logs — Kibana
+
+Chạy backend với profile `docker` để log JSON ra stdout (Filebeat tự thu):
+
+```bash
+SPRING_PROFILES_ACTIVE=docker ./mvnw spring-boot:run
+```
+
+Mỗi request API ghi log structured:
+
+```
+http_request method=GET uri=/api/v1/... status=200 duration_ms=42
+```
+
+Kibana: data view `jari-logs-*`, filter `message:http_request` hoặc `uri:/api/v1/projects`.
+
+## 9. Notes
 
 - Hiện tại `xpack.security.enabled=false` cho môi trường dev. **Trước khi lên prod bắt buộc bật security + TLS** (password cho ES, api_key cho Logstash/Filebeat/Kibana).
 - Dữ liệu index theo ngày (`jari-logs-YYYY.MM.dd`). Nên cấu hình ILM retention khi lên prod để không phình disk (Stack Management → Index Lifecycle Policies, ví dụ xoá sau 30 ngày).
 - Elasticsearch chiếm ~1GB RAM với cấu hình heap 512m trong compose; chỉnh `ES_JAVA_OPTS` theo máy.
+- Logstash indexer: set `JARI_JDBC_URL=jdbc:postgresql://host.docker.internal:5432/jari` trong `monitoring/.env`.
