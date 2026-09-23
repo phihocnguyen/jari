@@ -22,7 +22,7 @@ import com.example.jari.sprint.entity.SprintIssue;
 import com.example.jari.sprint.entity.SprintIssueId;
 import com.example.jari.sprint.entity.SprintStatus;
 import com.example.jari.sprint.mapper.SprintMapper;
-import com.example.jari.sprint.reposhtmlitory.SprintIssueRepository;
+import com.example.jari.sprint.repository.SprintIssueRepository;
 import com.example.jari.sprint.repository.SprintRepository;
 import com.example.jari.support.TestFixtures;
 import org.junit.jupiter.api.BeforeEach;
