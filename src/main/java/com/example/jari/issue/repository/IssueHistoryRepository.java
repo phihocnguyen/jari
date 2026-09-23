@@ -12,6 +12,14 @@ import java.util.UUID;
 public interface IssueHistoryRepository extends JpaRepository<IssueHistory, UUID> {
     List<IssueHistory> findByIssueIdOrderByCreatedAtDesc(UUID issueId);
 
+    @Query("""
+        SELECT h FROM IssueHistory h
+        JOIN FETCH h.user
+        WHERE h.issue.id = :issueId
+        ORDER BY h.createdAt DESC
+        """)
+    List<IssueHistory> findByIssueIdWithUser(@Param("issueId") UUID issueId);
+
     @Modifying
     @Query("DELETE FROM IssueHistory h WHERE h.issue.id = :issueId")
     void deleteByIssueId(@Param("issueId") UUID issueId);

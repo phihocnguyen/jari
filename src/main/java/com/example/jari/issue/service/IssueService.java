@@ -59,6 +59,7 @@ public class IssueService {
     private final com.example.jari.issue.search.IssueSearchService issueSearchService;
     private final ApplicationEventPublisher eventPublisher;
     private final ReadCacheEviction readCacheEviction;
+    private final IssueHydrationService issueHydrationService;
 
     private void evictReadCaches(Issue issue) {
         readCacheEviction.evictIssue(issue.getId(), issue.getIssueKey(), issue.getProject().getId());
@@ -123,7 +124,7 @@ public class IssueService {
 
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
         evictReadCaches(saved);
-        return mapper.toResponse(saved);
+        return mapper.toResponse(issueHydrationService.hydrateCollections(saved));
     }
 
     @Cacheable(value = CacheNames.ISSUE_LIST, key = "T(com.example.jari.shared.cache.IssueFilterCacheKey).of(#projectId, #filter)")
@@ -148,13 +149,15 @@ public class IssueService {
         var pageable = PageRequest.of(filter.getPage(), filter.getSize(),
             Sort.by(Sort.Direction.ASC, "position").and(Sort.by(Sort.Direction.DESC, "createdAt")));
 
-        return PageResponse.of(issueRepository.findAll(spec, pageable).map(mapper::toResponse));
+        var page = issueRepository.findAll(spec, pageable);
+        issueHydrationService.hydrateCollections(page.getContent());
+        return PageResponse.of(page.map(mapper::toResponse));
     }
 
     @Cacheable(value = CacheNames.ISSUE_DETAIL, key = "#id")
     @Transactional(readOnly = true)
     public IssueResponse get(UUID id) {
-        return mapper.toResponse(findDetailedOrThrow(id));
+        return mapper.toResponse(issueHydrationService.hydrateCollections(findDetailedOrThrow(id)));
     }
 
     @Cacheable(value = CacheNames.ISSUE_DETAIL, key = "#idOrKey")
@@ -167,7 +170,7 @@ public class IssueService {
             issue = issueRepository.findDetailedByIssueKeyIgnoreCase(idOrKey)
                 .orElseThrow(() -> new ResourceNotFoundException("Issue", idOrKey));
         }
-        return mapper.toResponse(issue);
+        return mapper.toResponse(issueHydrationService.hydrateCollections(issue));
     }
 
     @Transactional

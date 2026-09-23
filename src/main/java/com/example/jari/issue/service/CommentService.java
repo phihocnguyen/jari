@@ -36,7 +36,7 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public List<CommentResponse> list(UUID issueId) {
-        return commentRepository.findByIssueIdAndDeletedAtIsNullOrderByCreatedAtAsc(issueId).stream()
+        return commentRepository.findByIssueIdWithAuthor(issueId).stream()
             .map(mapper::toCommentResponse).toList();
     }
 

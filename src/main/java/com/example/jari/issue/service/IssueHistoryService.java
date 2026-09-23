@@ -35,7 +35,7 @@ public class IssueHistoryService {
 
     @Transactional(readOnly = true)
     public List<IssueHistoryResponse> getHistory(UUID issueId) {
-        return historyRepository.findByIssueIdOrderByCreatedAtDesc(issueId).stream()
+        return historyRepository.findByIssueIdWithUser(issueId).stream()
             .map(mapper::toHistoryResponse).toList();
     }
 }

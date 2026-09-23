@@ -21,6 +21,9 @@ public interface SprintIssueRepository extends JpaRepository<SprintIssue, Sprint
         JOIN FETCH i.priority
         LEFT JOIN FETCH i.assignee
         LEFT JOIN FETCH i.reporter
+        LEFT JOIN FETCH i.project
+        LEFT JOIN FETCH i.parent
+        LEFT JOIN FETCH i.release
         WHERE si.id.sprintId = :sprintId
         ORDER BY si.position ASC
         """)

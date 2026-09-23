@@ -4,6 +4,7 @@ import com.example.jari.project.entity.Project;
 import com.example.jari.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -15,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity @Table(name = "issues")
+@BatchSize(size = 50)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Issue {
 
@@ -65,6 +67,7 @@ public class Issue {
     private BigDecimal position = BigDecimal.valueOf(1000);
 
     @Builder.Default
+    @BatchSize(size = 50)
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "issue_labels",
         joinColumns = @JoinColumn(name = "issue_id"),
@@ -72,6 +75,7 @@ public class Issue {
     private Set<Label> labels = new HashSet<>();
 
     @Builder.Default
+    @BatchSize(size = 50)
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "issue_components",
         joinColumns = @JoinColumn(name = "issue_id"),
@@ -83,6 +87,7 @@ public class Issue {
     private com.example.jari.release.entity.Release release;
 
     @Builder.Default
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "issue", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<com.example.jari.sprint.entity.SprintIssue> sprintIssues = new HashSet<>();
 

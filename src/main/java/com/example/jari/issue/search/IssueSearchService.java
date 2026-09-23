@@ -5,6 +5,7 @@ import com.example.jari.issue.dto.IssueResponse;
 import com.example.jari.issue.entity.Issue;
 import com.example.jari.issue.mapper.IssueMapper;
 import com.example.jari.issue.repository.IssueRepository;
+import com.example.jari.issue.service.IssueHydrationService;
 import com.example.jari.shared.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class IssueSearchService {
     private final ElasticsearchOperations operations;
     private final IssueRepository issueRepository;
     private final IssueMapper mapper;
+    private final IssueHydrationService issueHydrationService;
 
     /**
      * @return kết quả search, hoặc null nếu ES lỗi/không khả dụng (caller fallback DB)
@@ -66,6 +68,8 @@ public class IssueSearchService {
 
             Map<UUID, Issue> byId = issueRepository.findAllWithDetailsByIdIn(ids).stream()
                 .collect(Collectors.toMap(Issue::getId, Function.identity(), (a, b) -> a, java.util.LinkedHashMap::new));
+
+            issueHydrationService.hydrateCollections(byId.values());
 
             List<IssueResponse> content = ids.stream()
                 .map(byId::get)

@@ -3,6 +3,7 @@ package com.example.jari.sprint.service;
 import com.example.jari.issue.entity.Issue;
 import com.example.jari.issue.mapper.IssueMapper;
 import com.example.jari.issue.repository.IssueRepository;
+import com.example.jari.issue.service.IssueHydrationService;
 import com.example.jari.issue.repository.StatusRepository;
 import com.example.jari.project.entity.Project;
 import com.example.jari.project.repository.ProjectRepository;
@@ -39,6 +40,7 @@ public class SprintService {
     private final SprintMapper sprintMapper;
     private final IssueMapper issueMapper;
     private final ReadCacheEviction readCacheEviction;
+    private final IssueHydrationService issueHydrationService;
 
     @Transactional
     public SprintResponse create(UUID projectId, CreateSprintRequest req) {
@@ -136,6 +138,9 @@ public class SprintService {
 
         List<SprintIssue> sprintIssues = sprintIssueRepository
             .findBySprintIdWithIssues(activeSprint.getId());
+
+        List<Issue> boardIssues = sprintIssues.stream().map(SprintIssue::getIssue).toList();
+        issueHydrationService.hydrateCollections(boardIssues);
 
         var statuses = statusRepository.findAll();
 

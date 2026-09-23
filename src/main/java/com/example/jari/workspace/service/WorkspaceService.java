@@ -26,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -99,9 +101,13 @@ public class WorkspaceService {
     @Transactional(readOnly = true)
     public List<WorkspaceMemberResponse> listMembers(UUID workspaceId) {
         List<WorkspaceMember> members = memberRepository.findByIdWorkspaceId(workspaceId);
+        Map<UUID, List<ProjectMember>> projectMembersByUserId = projectMemberRepository
+            .findAllByWorkspaceIdWithProject(workspaceId).stream()
+            .collect(Collectors.groupingBy(pm -> pm.getUser().getId()));
+
         return members.stream().map(m -> {
             WorkspaceMemberResponse resp = mapper.toMemberResponse(m);
-            List<ProjectMember> pms = projectMemberRepository.findAllByUserIdAndWorkspaceId(m.getUser().getId(), workspaceId);
+            List<ProjectMember> pms = projectMembersByUserId.getOrDefault(m.getUser().getId(), List.of());
             resp.setProjectIds(pms.stream().map(pm -> pm.getProject().getId()).toList());
             resp.setProjectNames(pms.stream().map(pm -> pm.getProject().getName()).toList());
             return resp;

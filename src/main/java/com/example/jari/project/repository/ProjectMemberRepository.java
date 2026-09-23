@@ -19,6 +19,13 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
     @Query("SELECT pm FROM ProjectMember pm WHERE pm.user.id = :userId AND pm.project.workspace.id = :workspaceId")
     List<ProjectMember> findAllByUserIdAndWorkspaceId(@Param("userId") UUID userId, @Param("workspaceId") UUID workspaceId);
 
+    @Query("""
+        SELECT pm FROM ProjectMember pm
+        JOIN FETCH pm.project
+        WHERE pm.project.workspace.id = :workspaceId
+        """)
+    List<ProjectMember> findAllByWorkspaceIdWithProject(@Param("workspaceId") UUID workspaceId);
+
     @Modifying
     @Query("DELETE FROM ProjectMember pm WHERE pm.user.id = :userId AND pm.project.workspace.id = :workspaceId")
     void deleteAllByUserIdAndWorkspaceId(@Param("userId") UUID userId, @Param("workspaceId") UUID workspaceId);
