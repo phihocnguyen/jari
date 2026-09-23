@@ -1,0 +1,17 @@
+spring:
+  main:
+    lazy-initialization: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration
+
+app:
+  security:
+    bypass: true
+    oauth2-enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.example.jari: INFO
