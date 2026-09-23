@@ -52,6 +52,8 @@ function collectStepMetrics(data, steps) {
 function findTaggedSubmetric(submetrics, metricBase, tag) {
   const candidates = [
     `${metricBase}{scenario:${tag}}`,
+    `${metricBase}{scenario:vu_step_${tag.replace(/^vu_/, '')}}`,
+    `${metricBase}{scenario:rps_step_${tag.replace(/^rps_/, '')}}`,
     `${metricBase}{capacity_step:${tag}}`,
   ];
   for (const name of candidates) {
