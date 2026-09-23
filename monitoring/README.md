@@ -9,12 +9,14 @@ cd monitoring
 docker compose up -d
 ```
 
-| Service | URL | Ghi chú |
-|---|---|---|
-| Kibana | http://localhost:5601 | UI xem log, tạo dashboard |
-| Elasticsearch | http://localhost:9200 | REST API (đã tắt security cho dev) |
-| Logstash | :5044 | Nhận log từ Filebeat (beats input) |
-| Filebeat | — | Tự động theo dõi log của mọi container trên máy |
+| Service       | URL                   | Ghi chú                                              |
+| ------------- | --------------------- | ---------------------------------------------------- |
+| **Grafana**   | http://localhost:3001 | Metrics API (request count, latency) — **giờ +7**    |
+| **Prometheus**| http://localhost:9090 | Engine metrics, PromQL — **luôn UTC (+0)**           |
+| **Kibana**    | http://localhost:5601 | **Error logs**, request logs — giờ theo browser/Kibana |
+| Elasticsearch | http://localhost:9200 | REST API (dev: security tắt)                         |
+| Logstash      | :5044                 | Nhận log từ Filebeat                                 |
+| Filebeat      | —                     | Thu log container trên máy                           |
 
 Đổi phiên bản qua file `.env` hoặc biến môi trường, ví dụ `ELK_VERSION=9.1.2`.
 
@@ -81,33 +83,212 @@ filebeat.inputs:
   - type: filestream
     id: jari-app
     paths:
-      - /path/to/jari/app.log   # logback: đổi appender sang RollingFileAppender
+      - /path/to/jari/app.log # logback: đổi appender sang RollingFileAppender
 ```
 
-## 4. Xem log trong Kibana
+## 4. Xem error logs trong Kibana
 
-1. Mở http://localhost:5601 → **Management → Stack Management → Data Views**.
-2. Create data view với pattern `jari-logs-*`, chọn `@timestamp` làm time field.
-3. Vào **Discover** để xem log, filter theo `level`, `logger_name`, `service`.
-4. Có thể tạo **Dashboard** (số lỗi 5xx, log ERROR theo giờ...) từ Discover → Save.
+### 4.1 Chuẩn bị
+
+1. ELK stack đang chạy: `docker compose up -d elasticsearch logstash kibana filebeat`
+2. Backend log **JSON** ra stdout (Filebeat đọc qua Docker):
+
+```bash
+# Từ thư mục jari/
+SPRING_PROFILES_ACTIVE=docker ./mvnw spring-boot:run
+```
+
+3. Đợi ~1 phút để log đi qua Filebeat → Logstash → index `jari-logs-YYYY.MM.dd`
+
+### 4.2 Tạo data view (lần đầu)
+
+1. Mở http://localhost:5601
+2. **Management → Stack Management → Data Views → Create data view**
+3. Name: `jari-logs`, Index pattern: `jari-logs-*`, Timestamp: `@timestamp` → Save
+
+### 4.3 Xem error logs
+
+1. **Analytics → Discover** → chọn data view `jari-logs`
+2. Góc phải chọn **time range** (vd. Last 15 minutes, hoặc custom lúc chạy k6/benchmark)
+3. Filter KQL:
+
+```
+level: "ERROR"
+```
+
+Chỉ exception từ `GlobalExceptionHandler`:
+
+```
+level: "ERROR" and message: "Unhandled exception"
+```
+
+Lỗi 5xx trên API cụ thể (log structured `http_request`):
+
+```
+message: "http_request" and status: 500
+```
+
+Hoặc:
+
+```
+message: *http_request* and message: *status=500*
+```
+
+4. Bấm vào dòng log → xem full `message`, `stack_trace` (nếu có), `logger_name`
+
+### 4.4 Request logs (không phải error)
+
+Mọi API request ghi dạng:
+
+```
+http_request method=GET uri=/api/v1/... status=200 duration_ms=42
+```
+
+Filter:
+
+```
+message: "http_request"
+```
+
+Filter theo endpoint:
+
+```
+message: *uri=/api/v1/projects**
+```
+
+---
+
+## 7. Metrics benchmark — Grafana (+7) & Prometheus (UTC)
+
+```
+Backend (/actuator/prometheus) → Prometheus (lưu + PromQL) → Grafana (chart, +7)
+```
+
+### 7.1 Chạy stack metrics
+
+```bash
+cd monitoring
+docker compose up -d prometheus grafana
+```
+
+Backend phải chạy trên host port **8080**. Kiểm tra target: http://localhost:9090/targets → `jari-backend` = **UP**.
+
+### 7.2 Grafana — request count theo API, khung thời gian +7
+
+1. Mở http://localhost:3001 — login **admin** / **admin**
+2. **Dashboards → Jari → Jari API Requests**
+3. Góc phải chọn **time range** trùng lúc chạy k6 (vd. `2026-09-23 15:00` → `15:10`) — hiển thị **giờ Việt Nam (+7)**
+4. Các panel:
+
+| Panel | Ý nghĩa |
+| ----- | ------- |
+| Request rate theo API | req/s theo từng endpoint (line chart) |
+| Tổng request API | Tổng số request trong khung thời gian đã chọn |
+| Số request / phút theo API | Histogram theo phút |
+| **Bảng URI / Method / Status / Count** | **Số lần gọi từng API** — panel chính để đếm |
+| p95 latency | Latency p95 theo API |
+
+5. Refresh: dashboard auto 10s, hoặc bấm refresh sau khi chạy benchmark
+
+> **Prometheus UI (9090) luôn UTC** — không đổi timezone. Chỉ dùng khi debug PromQL.
+
+### 7.3 PromQL tham khảo (Prometheus UI, UTC)
+
+**Tổng request theo API trong 15 phút:**
+
+```promql
+sum by (uri, method, status) (
+  increase(http_server_requests_seconds_count{job="jari-backend", uri=~"/api/v1/.*"}[15m])
+)
+```
+
+**Request/s theo thời gian:**
+
+```promql
+sum by (uri, method) (
+  rate(http_server_requests_seconds_count{job="jari-backend", uri=~"/api/v1/.*"}[1m])
+)
+```
+
+**Số lỗi 5xx (metrics, không phải log text):**
+
+```promql
+sum by (uri, method) (
+  increase(http_server_requests_seconds_count{job="jari-backend", status=~"5..", uri=~"/api/v1/.*"}[15m])
+)
+```
+
+Recording rules (`prometheus/recording_rules.yml`):
+
+| Metric | Ý nghĩa |
+| ------ | ------- |
+| `jari:http_request_duration_seconds:p95` | p95 latency theo uri/method |
+| `jari:http_request_duration_seconds:avg` | avg latency theo uri/method |
+| `jari:http_requests:rate5m` | req/s theo uri/method/status |
+| `jari:http_requests:increase5m` | request tăng thêm trong 5 phút |
+| `jari:cache_hit_rate_overall:5m` | **Redis cache hit rate tổng** (0–1, ×100 = %) |
+| `jari:cache_hit_rate:5m` | hit rate theo từng cache (`ref:*`, `issue:*`, …) |
+| `jari:cache_gets:rate5m` | cache gets/s theo `result=hit|miss` |
+
+**Redis cache hit rate (tổng, %):**
+
+```promql
+100 * jari:cache_hit_rate_overall:5m
+```
+
+**Hit rate theo cache name:**
+
+```promql
+100 * jari:cache_hit_rate:5m
+```
+
+**Hit vs miss / s:**
+
+```promql
+sum by (cache, result) (jari:cache_gets:rate5m)
+```
+
+> Cần `spring.cache.redis.enable-statistics: true` + `RedisCacheManager.enableStatistics()` (đã cấu hình trong backend). Sau restart app, panel **Redis cache hit rate** trên Grafana dashboard sẽ có dữ liệu khi có traffic.
+
+### 7.4 Workflow sau k6 benchmark
+
+```bash
+# Terminal 1 — backend
+SPRING_PROFILES_ACTIVE=docker ./mvnw spring-boot:run
+
+# Terminal 2 — metrics
+cd monitoring && docker compose up -d prometheus grafana
+
+# Terminal 3 — benchmark (ghi nhớ giờ bắt đầu/kết thúc)
+cd k6 && ./run.sh load.js
+```
+
+Sau benchmark:
+
+- **Grafana** http://localhost:3001 → set time range → xem bảng **Count theo API** + latency + **Redis cache hit rate**
+- **Kibana** http://localhost:5601 → `level: ERROR` hoặc `status: 500` → xem stack trace
+
+---
 
 ## 5. Indexer service — đồng bộ DB vào Elasticsearch
 
 Ngoài thu log, Logstash còn chạy **indexer pipeline** (`logstash/pipeline/indexer.conf`) poll PostgreSQL và index dữ liệu sang ES để search/filter mà không phải query DB:
 
-| Index | Nội dung | Poll |
-|---|---|---|
-| `jari-issues` | Issue denormalized sẵn: project, workspace, status + category, priority, type, reporter, assignee, sprint, position | 30s |
-| `jari-projects` | Project + workspace, lead, member_count, issue_count | 60s |
-| `jari-users` | User (không có password_hash) | 60s |
+| Index           | Nội dung                                                                                                            | Poll |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- | ---- |
+| `jari-issues`   | Issue denormalized sẵn: project, workspace, status + category, priority, type, reporter, assignee, sprint, position | 30s  |
+| `jari-projects` | Project + workspace, lead, member_count, issue_count                                                                | 60s  |
+| `jari-users`    | User (không có password_hash)                                                                                       | 60s  |
 
 Cách hoạt động:
+
 - Incremental sync qua `updated_at` (`:sql_last_value`), chỉ kéo bản ghi mới/thay đổi; `_id` = id bản ghi DB nên cập nhật là đè lên bản cũ, không duplicate.
 - Index `jari-issues` có mapping tường minh do template `elasticsearch/templates/jari-issues.json` (service `elasticsearch-init` cài tự động khi `docker compose up`): keyword cho field filter, text cho field search, date/number cho sort.
 - Logstash dùng image custom ([logstash/Dockerfile](logstash/Dockerfile)) có sẵn PostgreSQL JDBC driver.
-- Kết nối DB cấu hình qua `monitoring/.env` (`JARI_JDBC_URL`, `JARI_DB_USER`, `JARI_DB_PASS`) — file này đã được gitignore, thay bằng DB của môi trường thực tế khi deploy.
+- Kết nối DB cấu hình qua `monitoring/.env` (`JARI_JDBC_URL`, `JARI_DB_USER`, `JARI_DB_PASS`) — copy từ `monitoring/.env.example` (Postgres local qua Docker).
 
 Lưu ý:
+
 - Pipeline **không xử lý delete**: bản ghi xoá cứng trong DB sẽ còn sót trong ES (issue xoá rồi vẫn có thể còn hiện trong search tối đa cho đến khi index lại). Nếu cần đồng bộ delete, thêm script chạy `DELETE BY QUERY` định kỳ.
 
 ## 6. Backend query từ Elasticsearch (write-through)
@@ -123,42 +304,6 @@ Backend truy vấn ES làm đường chính cho list issue, và **ghi vào ES ng
 - Đường đọc: `IssueSearchService` filter trên ES → ES trả ID → DB hydrate entity theo ID (PK lookup) cho response đầy đủ. ES lỗi → fallback JPA Specification tự động.
 - Kết nối: `spring.elasticsearch.uris` trong `application.yaml` (default `http://localhost:9200`; backend chạy trong Docker cùng network `jari-monitoring` thì set `ELASTICSEARCH_URIS=http://elasticsearch:9200`).
 - CRUD vẫn ghi vào Postgres như trước — Postgres vẫn là source of truth.
-
-## 7. Prometheus — API latency & throughput
-
-Prometheus scrape `http://host.docker.internal:8080/actuator/prometheus` (Micrometer).
-
-Recording rules (`prometheus/recording_rules.yml`):
-
-| Metric | Ý nghĩa |
-|---|---|
-| `jari:http_request_duration_seconds:p95` | p95 latency theo uri/method |
-| `jari:http_request_duration_seconds:avg` | avg latency theo uri/method |
-| `jari:http_requests:rate5m` | req/s theo uri/method/status |
-
-Ví dụ query trên http://localhost:9090:
-
-```promql
-jari:http_request_duration_seconds:p95{uri=~"/api/v1/projects/.*/issues"}
-cache_gets_total
-hikaricp_connections_active
-```
-
-## 8. Logs — Kibana
-
-Chạy backend với profile `docker` để log JSON ra stdout (Filebeat tự thu):
-
-```bash
-SPRING_PROFILES_ACTIVE=docker ./mvnw spring-boot:run
-```
-
-Mỗi request API ghi log structured:
-
-```
-http_request method=GET uri=/api/v1/... status=200 duration_ms=42
-```
-
-Kibana: data view `jari-logs-*`, filter `message:http_request` hoặc `uri:/api/v1/projects`.
 
 ## 9. Notes
 

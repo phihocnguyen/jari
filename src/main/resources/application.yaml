@@ -41,6 +41,7 @@ spring:
     redis:
       time-to-live: 300000
       cache-null-values: false
+      enable-statistics: true
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}

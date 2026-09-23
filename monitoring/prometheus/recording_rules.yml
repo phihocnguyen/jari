@@ -20,3 +20,25 @@ groups:
           sum by (uri, method, status) (
             rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[5m])
           )
+      - record: jari:http_requests:increase5m
+        expr: |
+          sum by (uri, method, status) (
+            increase(http_server_requests_seconds_count{uri!~"/actuator.*|/swagger-ui.*|/api-docs.*|/ws.*"}[5m])
+          )
+
+  - name: jari_cache
+    interval: 30s
+    rules:
+      - record: jari:cache_gets:rate5m
+        expr: |
+          sum by (cache, result) (rate(cache_gets_total{application="jari"}[5m]))
+      - record: jari:cache_hit_rate:5m
+        expr: |
+          sum by (cache) (rate(cache_gets_total{application="jari", result="hit"}[5m]))
+          /
+          sum by (cache) (rate(cache_gets_total{application="jari"}[5m]))
+      - record: jari:cache_hit_rate_overall:5m
+        expr: |
+          sum(rate(cache_gets_total{application="jari", result="hit"}[5m]))
+          /
+          sum(rate(cache_gets_total{application="jari"}[5m]))

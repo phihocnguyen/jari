@@ -23,7 +23,11 @@ services:
     ports:
       - "9200:9200"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fs http://localhost:9200/_cluster/health || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -62,6 +66,8 @@ services:
     image: jari-logstash:${ELK_VERSION:-9.1.2}
     container_name: jari-logstash
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -145,6 +151,26 @@ services:
       - --web.enable-lifecycle
     ports:
       - "9090:9090"
+    networks:
+      - monitoring
+
+  # Grafana — dashboard metrics API (timezone +7). Prometheus scrape phía sau.
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: jari-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_DEFAULT_TIMEZONE: Asia/Ho_Chi_Minh
+      TZ: Asia/Ho_Chi_Minh
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
     networks:
       - monitoring
 

@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: jari
+    orgId: 1
+    folder: Jari
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
