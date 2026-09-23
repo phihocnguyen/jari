@@ -10,6 +10,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -23,27 +24,27 @@ public class ReferenceService {
     @Cacheable(CacheNames.REF_ISSUE_TYPES)
     @Transactional(readOnly = true)
     public List<ReferenceItemResponse> getIssueTypes() {
-        return issueTypeRepository.findAll().stream()
+        return new ArrayList<>(issueTypeRepository.findAll().stream()
             .map(t -> ReferenceItemResponse.builder()
                 .id(t.getId()).name(t.getName()).description(t.getDescription()).build())
-            .toList();
+            .toList());
     }
 
     @Cacheable(CacheNames.REF_STATUSES)
     @Transactional(readOnly = true)
     public List<ReferenceItemResponse> getStatuses() {
-        return statusRepository.findAll().stream()
+        return new ArrayList<>(statusRepository.findAll().stream()
             .map(s -> ReferenceItemResponse.builder()
                 .id(s.getId()).name(s.getName()).extra(s.getCategory()).build())
-            .toList();
+            .toList());
     }
 
     @Cacheable(CacheNames.REF_PRIORITIES)
     @Transactional(readOnly = true)
     public List<ReferenceItemResponse> getPriorities() {
-        return priorityRepository.findAllOrderByLevel().stream()
+        return new ArrayList<>(priorityRepository.findAllOrderByLevel().stream()
             .map(p -> ReferenceItemResponse.builder()
                 .id(p.getId()).name(p.getName()).extra(String.valueOf(p.getLevel())).build())
-            .toList();
+            .toList());
     }
 }

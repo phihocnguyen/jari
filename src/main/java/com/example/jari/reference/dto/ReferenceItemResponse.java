@@ -1,9 +1,14 @@
 package com.example.jari.reference.dto;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.util.UUID;
 
-@Data @Builder
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ReferenceItemResponse {
     private UUID id;
     private String name;

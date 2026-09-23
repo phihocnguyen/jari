@@ -1,7 +1,9 @@
 package com.example.jari.issue.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -9,6 +11,8 @@ import java.util.UUID;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProjectSummaryResponse {
 
     private Metrics metrics;
@@ -21,6 +25,8 @@ public class ProjectSummaryResponse {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Metrics {
         private long completedLast7Days;
         private long updatedLast7Days;
@@ -30,6 +36,8 @@ public class ProjectSummaryResponse {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class StatusCount {
         private String status;
         private long count;
@@ -37,6 +45,8 @@ public class ProjectSummaryResponse {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class PriorityCount {
         private String priority;
         private long count;
@@ -44,6 +54,8 @@ public class ProjectSummaryResponse {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TypeCount {
         private String type;
         private long count;
@@ -51,6 +63,8 @@ public class ProjectSummaryResponse {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class MemberWorkload {
         private UUID userId;
         private String fullName;
@@ -61,6 +75,8 @@ public class ProjectSummaryResponse {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ActivityItem {
         private String actorName;
         private String action;
@@ -71,6 +87,8 @@ public class ProjectSummaryResponse {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class EpicProgress {
         private UUID epicId;
         private String epicKey;
