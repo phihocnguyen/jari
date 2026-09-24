@@ -75,9 +75,36 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProjectResponse> listByWorkspace(UUID workspaceId) {
-        return projectRepository.findByWorkspaceId(workspaceId).stream()
-            .map(mapper::toResponse).toList();
+    public List<ProjectResponse> listByWorkspace(UUID workspaceId, UUID userId) {
+        if (userId == null) {
+            return List.of();
+        }
+
+        // Workspace owner / WORKSPACE_ADMIN can see every project (needed to assign members).
+        // Everyone else only sees projects they are a project member of.
+        if (isWorkspaceAdmin(workspaceId, userId)) {
+            return projectRepository.findByWorkspaceId(workspaceId).stream()
+                .map(mapper::toResponse)
+                .toList();
+        }
+
+        return memberRepository.findAllByUserIdAndWorkspaceId(userId, workspaceId).stream()
+            .map(ProjectMember::getProject)
+            .map(mapper::toResponse)
+            .toList();
+    }
+
+    private boolean isWorkspaceAdmin(UUID workspaceId, UUID userId) {
+        Workspace ws = workspaceRepository.findById(workspaceId).orElse(null);
+        if (ws == null) {
+            return false;
+        }
+        if (ws.getOwner() != null && userId.equals(ws.getOwner().getId())) {
+            return true;
+        }
+        return workspaceMemberRepository.findById(new WorkspaceMemberId(workspaceId, userId))
+            .map(m -> "WORKSPACE_ADMIN".equalsIgnoreCase(m.getRole().getName()))
+            .orElse(false);
     }
 
     @Transactional(readOnly = true)

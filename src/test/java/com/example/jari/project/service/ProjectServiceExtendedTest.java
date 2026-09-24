@@ -4,12 +4,15 @@ import com.example.jari.notification.service.NotificationService;
 import com.example.jari.project.dto.CreateProjectRequest;
 import com.example.jari.project.dto.ProjectResponse;
 import com.example.jari.project.entity.Project;
+import com.example.jari.project.entity.ProjectMember;
+import com.example.jari.project.entity.ProjectMemberId;
 import com.example.jari.project.mapper.ProjectMapper;
 import com.example.jari.project.repository.ProjectMemberRepository;
 import com.example.jari.project.repository.ProjectRepository;
 import com.example.jari.rbac.service.RbacService;
 import com.example.jari.support.TestFixtures;
 import com.example.jari.user.repository.UserRepository;
+import com.example.jari.workspace.entity.WorkspaceMemberId;
 import com.example.jari.workspace.repository.WorkspaceMemberRepository;
 import com.example.jari.workspace.repository.WorkspaceRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +28,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -99,14 +103,48 @@ class ProjectServiceExtendedTest {
     }
 
     @Test
-    void listByWorkspace_mapsProjects() {
+    void listByWorkspace_returnsOnlyAssignedProjectsForRegularMember() {
         var workspace = TestFixtures.workspace(workspaceId, TestFixtures.user(UUID.randomUUID(), "Owner"));
+        Project assigned = TestFixtures.project(UUID.randomUUID(), workspace);
+        ProjectMember membership = ProjectMember.builder()
+            .id(new ProjectMemberId(assigned.getId(), requesterId))
+            .project(assigned)
+            .user(TestFixtures.user(requesterId, "Member"))
+            .role(TestFixtures.role("PROJECT_MEMBER"))
+            .build();
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
+        when(workspaceMemberRepository.findById(new WorkspaceMemberId(workspaceId, requesterId)))
+            .thenReturn(Optional.empty());
+        when(memberRepository.findAllByUserIdAndWorkspaceId(requesterId, workspaceId))
+            .thenReturn(java.util.List.of(membership));
+        when(mapper.toResponse(assigned)).thenReturn(ProjectResponse.builder().id(assigned.getId()).build());
+
+        var result = projectService.listByWorkspace(workspaceId, requesterId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(assigned.getId());
+        verify(projectRepository, never()).findByWorkspaceId(any());
+    }
+
+    @Test
+    void listByWorkspace_returnsAllProjectsForWorkspaceAdmin() {
+        var owner = TestFixtures.user(requesterId, "Owner");
+        var workspace = TestFixtures.workspace(workspaceId, owner);
         Project project = TestFixtures.project(UUID.randomUUID(), workspace);
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
         when(projectRepository.findByWorkspaceId(workspaceId)).thenReturn(java.util.List.of(project));
         when(mapper.toResponse(project)).thenReturn(ProjectResponse.builder().id(project.getId()).build());
 
-        projectService.listByWorkspace(workspaceId);
+        var result = projectService.listByWorkspace(workspaceId, requesterId);
 
-        verify(mapper).toResponse(project);
+        assertThat(result).hasSize(1);
+        verify(memberRepository, never()).findAllByUserIdAndWorkspaceId(any(), any());
+    }
+
+    @Test
+    void listByWorkspace_returnsEmptyWhenUserMissing() {
+        assertThat(projectService.listByWorkspace(workspaceId, null)).isEmpty();
     }
 }

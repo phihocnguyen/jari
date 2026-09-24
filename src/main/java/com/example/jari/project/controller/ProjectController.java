@@ -33,10 +33,16 @@ public class ProjectController {
             .body(com.example.jari.shared.response.ApiResponse.ok(projectService.create(workspaceId, user.getId(), req)));
     }
 
-    @Operation(summary = "List projects in workspace", description = "Returns all projects belonging to a specific workspace.")
+    @Operation(summary = "List projects in workspace",
+        description = "Returns projects the current user can access in this workspace. "
+            + "Workspace owners/admins see all projects; other members only see projects they are assigned to.")
     @GetMapping("/api/v1/workspaces/{workspaceId}/projects")
-    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<ProjectResponse>>> list(@PathVariable UUID workspaceId) {
-        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(projectService.listByWorkspace(workspaceId)));
+    public ResponseEntity<com.example.jari.shared.response.ApiResponse<List<ProjectResponse>>> list(
+            @PathVariable UUID workspaceId,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        UUID userId = user != null ? user.getId() : null;
+        return ResponseEntity.ok(com.example.jari.shared.response.ApiResponse.ok(
+            projectService.listByWorkspace(workspaceId, userId)));
     }
 
     @Operation(summary = "Get project", description = "Returns details of a specific project by its ID or project-key.")
