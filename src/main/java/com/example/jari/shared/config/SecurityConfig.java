@@ -4,6 +4,7 @@ import com.example.jari.shared.security.JwtAuthenticationFilter;
 import com.example.jari.user.oauth2.OAuth2AuthenticationFailureHandler;
 import com.example.jari.user.oauth2.OAuth2AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,7 +18,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -44,6 +44,9 @@ public class SecurityConfig {
         "/actuator/info",
         "/actuator/prometheus",
         "/actuator/metrics",
+        // GitHub App webhooks (HMAC verified) + post-install setup callback (state signed)
+        "/api/v1/webhooks/github",
+        "/api/v1/github/setup",
         // WebSocket endpoint stays open at HTTP level; real auth happens on the
         // STOMP CONNECT frame (WebSocketAuthChannelInterceptor).
         "/ws/**",
@@ -52,32 +55,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        boolean bypass = appProperties.getSecurity().isBypass();
         boolean oauth2Enabled = appProperties.getSecurity().isOauth2Enabled();
 
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-        if (bypass) {
-            // =========================================================================
-            // Bypass Mode: Tất cả API đều public (flag app.security.bypass = true)
-            // =========================================================================
-            http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-        } else {
-            // Strict Security Mode: Chỉ mở PUBLIC_PATHS, còn lại yêu cầu authenticated
-            http.authorizeHttpRequests(auth -> auth
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
                 .requestMatchers(PUBLIC_PATHS).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             );
-        }
 
         if (oauth2Enabled) {
-            // =========================================================================
-            // OAuth2 Mode: Bật đăng nhập Google OAuth2 (flag app.security.oauth2-enabled = true)
-            // =========================================================================
             OAuth2AuthenticationSuccessHandler successHandler = oAuth2SuccessHandlerProvider.getIfAvailable();
             OAuth2AuthenticationFailureHandler failureHandler = oAuth2FailureHandlerProvider.getIfAvailable();
             if (successHandler != null && failureHandler != null) {

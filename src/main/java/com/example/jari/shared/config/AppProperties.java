@@ -16,17 +16,11 @@ public class AppProperties {
     private Security security = new Security();
     private Jwt jwt = new Jwt();
     private Cors cors = new Cors();
+    private Github github = new Github();
 
     @Getter
     @Setter
     public static class Security {
-        /**
-         * Khi true: Tất cả API là public, không bắt buộc JWT;
-         * Tự động gán dev user khi không có token để tránh NPE ở các controller.
-         * Đổi thành false khi muốn bật lại bảo mật JWT.
-         */
-        private boolean bypass = true;
-
         /**
          * Khi true: Kích hoạt luồng OAuth2 login (Google,...).
          * Đổi thành true và cấu hình spring.security.oauth2 khi muốn bật lại OAuth2.
@@ -46,5 +40,22 @@ public class AppProperties {
     @Setter
     public static class Cors {
         private List<String> allowedOrigins = List.of("http://localhost:3000");
+    }
+
+    @Getter
+    @Setter
+    public static class Github {
+        private String appId = "";
+        private String clientId = "";
+        private String clientSecret = "";
+        /** PEM private key for GitHub App JWT (literal newlines or \\n escaped). */
+        private String privateKeyPem = "";
+        private String webhookSecret = "";
+        /** App slug used in install URL: https://github.com/apps/{slug}/installations/new */
+        private String appSlug = "";
+        /** Frontend base URL for post-install redirect. */
+        private String frontendBaseUrl = "http://localhost:3000";
+        /** Backend public base URL used as Setup URL callback host if needed. */
+        private String backendBaseUrl = "http://localhost:8080";
     }
 }

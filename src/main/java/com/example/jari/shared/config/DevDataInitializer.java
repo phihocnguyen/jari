@@ -15,10 +15,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+/**
+ * Optional demo seed data when running with Spring profile {@code dev}.
+ */
 @Slf4j
 @Component
+@Profile("dev")
 @RequiredArgsConstructor
 public class DevDataInitializer implements ApplicationRunner {
 
@@ -27,16 +32,10 @@ public class DevDataInitializer implements ApplicationRunner {
     private final WorkspaceService workspaceService;
     private final ProjectRepository projectRepository;
     private final ProjectService projectService;
-    private final AppProperties appProperties;
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!appProperties.getSecurity().isBypass()) {
-            return;
-        }
-
         try {
-            // 1. Đảm bảo có User dev
             User devUser = userRepository.findAll().stream().findFirst().orElseGet(() ->
                 userRepository.save(User.builder()
                     .username("dev_user")
@@ -51,7 +50,6 @@ public class DevDataInitializer implements ApplicationRunner {
                 userRepository.save(devUser);
             }
 
-            // 2. Đảm bảo có Workspace mặc định
             if (workspaceRepository.count() == 0) {
                 CreateWorkspaceRequest wsReq = new CreateWorkspaceRequest();
                 wsReq.setName("Acme Engineering");
@@ -60,7 +58,6 @@ public class DevDataInitializer implements ApplicationRunner {
                 WorkspaceResponse ws = workspaceService.create(devUser.getId(), wsReq);
                 log.info("Initialized default workspace: {} (ID: {})", ws.getName(), ws.getId());
 
-                // 3. Đảm bảo có Project mặc định
                 CreateProjectRequest projReq = new CreateProjectRequest();
                 projReq.setName("Teams in Space");
                 projReq.setProjectKey("TIS");

@@ -8,7 +8,6 @@ spring:
 
 app:
   security:
-    bypass: true
     oauth2-enabled: false
 
 logging:

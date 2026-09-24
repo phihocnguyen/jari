@@ -110,6 +110,12 @@
 			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- Parse GitHub App PEM private keys (PKCS#1 / PKCS#8) -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk18on</artifactId>
+			<version>1.79</version>
+		</dependency>
 
 		<!-- ======================== MESSAGING ======================== -->
 		<dependency>

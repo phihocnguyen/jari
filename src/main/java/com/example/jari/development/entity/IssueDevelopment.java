@@ -43,6 +43,13 @@ public class IssueDevelopment {
     @Column(length = 100)
     private String author;
 
+    /** GitHub PR number / commit SHA / branch name — used for webhook upserts. */
+    @Column(name = "external_id", length = 255)
+    private String externalId;
+
+    @Column(name = "github_repo_id")
+    private Long githubRepoId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

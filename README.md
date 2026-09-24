@@ -33,8 +33,9 @@ Jari is a self-hosted, Jira-inspired project management backend. It exposes a RE
 - **Search** — Elasticsearch index for fast issue filtering; PostgreSQL fallback when ES is unavailable
 - **Caching** — Redis-backed `@Cacheable` on read-heavy endpoints (ref data, issue list/detail, board, summary) with Micrometer hit/miss metrics
 - **Real-time** — STOMP WebSocket for notifications and project presence
-- **Auth** — JWT access/refresh tokens, optional Google OAuth2, dev security bypass for local work
+- **Auth** — JWT access/refresh tokens, optional Google OAuth2
 - **Automation** — rule hooks on issue status changes with audit logs
+- **Development** — link branches/commits/PRs to issues; GitHub App auto-links by issue key
 - **Observability** — Prometheus metrics, Grafana dashboards (API latency + cache hit rate), ELK log pipeline
 - **Load testing** — k6 scenarios for smoke, stress, and capacity discovery
 
@@ -51,6 +52,7 @@ flowchart LR
   subgraph backend [jari backend]
     API[Spring Boot :8080]
     WS[WebSocket /ws]
+    Dev[development.github]
   end
 
   subgraph data [Data layer]
@@ -58,6 +60,10 @@ flowchart LR
     RD[(Redis)]
     ES[(Elasticsearch)]
     MQ[(RabbitMQ)]
+  end
+
+  subgraph githubCloud [GitHub]
+    GHApp[GitHub App]
   end
 
   subgraph observability [Monitoring]
@@ -68,6 +74,8 @@ flowchart LR
 
   FE -->|REST /api/v1| API
   FE -->|STOMP| WS
+  GHApp -->|webhooks| Dev
+  Dev --> API
   API --> PG
   API --> RD
   API --> ES
@@ -130,7 +138,7 @@ This starts **PostgreSQL**, **Redis**, and **RabbitMQ**.
 | Health     | http://localhost:8080/actuator/health     |
 | Prometheus | http://localhost:8080/actuator/prometheus |
 
-On first run with `app.security.bypass=true` (default in dev), **DevDataInitializer** seeds a workspace (`ACME`) and project (`TIS`).
+On first run with Spring profile `dev` (`SPRING_PROFILES_ACTIVE=dev`), **DevDataInitializer** seeds a workspace (`ACME`) and project (`TIS`). Register or log in via `/api/v1/auth` before calling protected APIs.
 
 ### 3. Link the frontend (jari-client)
 
@@ -169,9 +177,65 @@ Open http://localhost:3000
 export CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 ```
 
-**Auth in dev** — with `app.security.bypass=true`, API calls work without JWT. Set `app.security.bypass=false` and configure credentials to test the full auth flow.
+**Auth** — APIs require a JWT (except `/api/v1/auth/**`, OAuth2, actuator health, and GitHub webhooks). Register/login to obtain tokens, or use Google OAuth when enabled.
 
 **OAuth2 Google** — set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` and `app.security.oauth2-enabled=true`; the OAuth callback redirects to `http://localhost:3000/auth/callback`.
+
+---
+
+## Development panel & GitHub App
+
+Issue **Development** links (branch / commit / pull request) live in `issue_developments` and are exposed via:
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/api/v1/issues/{id}/developments` | List links on an issue |
+| `POST` | `/api/v1/issues/{id}/developments` | Manual link |
+| `DELETE` | `/api/v1/developments/{id}` | Unlink |
+
+GitHub App automation lives under `com.example.jari.development.github` and fills the same table when a mapped repo emits events whose title, branch, or commit message contains an issue key (e.g. `APP-1`).
+
+```mermaid
+sequenceDiagram
+  participant Admin
+  participant FE as jari-client
+  participant API as jari
+  participant GH as GitHub
+
+  Admin->>FE: Settings Integrations Connect
+  FE->>API: GET install-url
+  API-->>FE: GitHub App install URL + signed state
+  Admin->>GH: Install App select repos
+  GH->>API: GET /api/v1/github/setup
+  API->>API: Link installation to workspace sync repos
+  Admin->>FE: Map repo to Jari project
+  Note over GH,API: Runtime
+  GH->>API: POST /api/v1/webhooks/github
+  API->>API: Verify HMAC parse keys upsert IssueDevelopment
+```
+
+### Setup
+
+1. Create a GitHub App with permissions: **Contents** (Read), **Metadata** (Read), **Pull requests** (Read).  
+   Subscribe to events: `Installation`, `Installation repositories`, `Push`, `Create`, `Pull request`.
+2. **Webhook URL:** `https://<public-host>/api/v1/webhooks/github` (ngrok / Cloudflare Tunnel locally).
+3. **Setup URL:** `https://<public-host>/api/v1/github/setup`
+4. Env vars: `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET`, `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET`, `FRONTEND_BASE_URL`.
+5. In the UI: **Workspace Settings → Integrations → Connect GitHub**, then map each repo to a project.
+6. Smoke test: branch `feature/APP-1-x`, commit `APP-1 msg`, PR title `APP-1 …` → appear on ticket Development panel.
+
+### Admin APIs
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/api/v1/workspaces/{id}/github/install-url` | Start App install |
+| `GET` | `/api/v1/workspaces/{id}/github/installations` | List installs + repos |
+| `PUT` | `/api/v1/workspaces/{id}/github/repos/{repoId}` | Map/unmap `{ "projectId": "…" }` |
+| `DELETE` | `/api/v1/workspaces/{id}/github/installations/{id}` | Disconnect install |
+| `POST` | `/api/v1/webhooks/github` | GitHub webhook (HMAC, public) |
+| `GET` | `/api/v1/github/setup` | Post-install redirect callback |
+
+Webhook events → development types: `create` (branch) → `BRANCH`, `push` → `COMMIT`, `pull_request` → `PULL_REQUEST` (status `OPEN` / `MERGED` / `CLOSED`).
 
 ---
 
@@ -193,13 +257,20 @@ cp .env.example .env
 | `JWT_SECRET`                | dev default                             | JWT signing key — **change in production** |
 | `CORS_ORIGINS`              | `http://localhost:3000`                 | Allowed frontend origins                   |
 | `SPRING_PROFILES_ACTIVE`    | —                                       | Set `docker` for JSON logs → ELK           |
+| `GITHUB_APP_ID`             | —                                       | GitHub App ID                              |
+| `GITHUB_APP_CLIENT_ID`      | —                                       | GitHub App client ID                       |
+| `GITHUB_APP_CLIENT_SECRET`  | —                                       | GitHub App client secret                   |
+| `GITHUB_APP_PRIVATE_KEY`    | —                                       | PEM private key (`\n` escaped OK)          |
+| `GITHUB_WEBHOOK_SECRET`     | —                                       | Webhook HMAC secret                        |
+| `GITHUB_APP_SLUG`           | —                                       | App slug for install URL                   |
+| `FRONTEND_BASE_URL`         | `http://localhost:3000`                 | Post-install redirect target               |
+| `BACKEND_BASE_URL`          | `http://localhost:8080`                 | Public API base (docs / tunnels)           |
 
 Key settings in `src/main/resources/application.yaml`:
 
 ```yaml
 app:
   security:
-    bypass: true # false = require JWT on all protected routes
     oauth2-enabled: true
 
 spring:
@@ -225,6 +296,7 @@ All routes are under `/api/v1` unless noted.
 | Summary       | `GET /projects/{id}/summary`                                    |
 | Reference     | `GET /ref/issue-types`, `/ref/statuses`, `/ref/priorities`      |
 | Notifications | inbox, mark read                                                |
+| Development   | issue developments CRUD; GitHub App install, map, webhooks      |
 | WebSocket     | `/ws` — STOMP topics for notifications & presence               |
 
 Interactive docs: http://localhost:8080/swagger-ui.html
@@ -352,8 +424,11 @@ jari/
 # Compile only
 ./mvnw compile -DskipTests
 
-# Run with security enabled
-app.security.bypass=false ./mvnw spring-boot:run
+# Run the API (JWT required on protected routes)
+./mvnw spring-boot:run
+
+# Optional demo seed data
+SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 ```
 
 ### Testing & coverage
