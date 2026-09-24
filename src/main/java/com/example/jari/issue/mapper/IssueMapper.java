@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 public interface IssueMapper {
 
     @Mapping(source = "project.id",       target = "projectId")
+    @Mapping(source = "project.name",     target = "projectName")
+    @Mapping(source = "project.projectKey", target = "projectKey")
     @Mapping(source = "issueType.name",   target = "issueType")
     @Mapping(source = "status.name",      target = "status")
     @Mapping(source = "status.category",  target = "statusCategory")

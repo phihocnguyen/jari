@@ -16,6 +16,9 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
     List<ProjectMember> findByIdProjectId(UUID projectId);
     boolean existsByIdProjectIdAndIdUserId(UUID projectId, UUID userId);
 
+    @Query("SELECT DISTINCT pm.project.id FROM ProjectMember pm WHERE pm.user.id = :userId")
+    List<UUID> findProjectIdsByUserId(@Param("userId") UUID userId);
+
     @Query("SELECT pm FROM ProjectMember pm WHERE pm.user.id = :userId AND pm.project.workspace.id = :workspaceId")
     List<ProjectMember> findAllByUserIdAndWorkspaceId(@Param("userId") UUID userId, @Param("workspaceId") UUID workspaceId);
 

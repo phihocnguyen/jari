@@ -9,6 +9,7 @@ import com.example.jari.issue.service.IssueHydrationService;
 import com.example.jari.shared.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,16 +52,34 @@ public class IssueSearchService {
      * @return kết quả search, hoặc null nếu ES lỗi/không khả dụng (caller fallback DB)
      */
     public PageResponse<IssueResponse> search(UUID projectId, IssueFilterRequest filter) {
-        try {
-            Criteria criteria = buildCriteria(projectId, filter);
+        return search(projectId, null, filter, Sort.by(Sort.Direction.ASC, "position")
+            .and(Sort.by(Sort.Direction.DESC, "createdAt")));
+    }
 
-            Pageable pageable = PageRequest.of(filter.getPage(), filter.getSize(),
-                Sort.by(Sort.Direction.ASC, "position").and(Sort.by(Sort.Direction.DESC, "createdAt")));
+    /**
+     * Global / multi-project search. Never call with empty {@code projectIds} — that would
+     * scan the whole index without ACL.
+     */
+    public PageResponse<IssueResponse> searchAcross(Collection<UUID> projectIds, IssueFilterRequest filter) {
+        if (projectIds == null || projectIds.isEmpty()) {
+            return PageResponse.of(Page.empty(PageRequest.of(filter.getPage(), filter.getSize())));
+        }
+        return search(null, projectIds, filter, Sort.by(Sort.Direction.DESC, "createdAt"));
+    }
+
+    private PageResponse<IssueResponse> search(
+            UUID projectId,
+            Collection<UUID> projectIds,
+            IssueFilterRequest filter,
+            Sort sort) {
+        try {
+            Criteria criteria = buildCriteria(projectId, projectIds, filter);
+
+            Pageable pageable = PageRequest.of(filter.getPage(), filter.getSize(), sort);
             CriteriaQuery query = new CriteriaQuery(criteria).setPageable(pageable);
 
             SearchHits<IssueSearchDocument> hits = operations.search(query, IssueSearchDocument.class);
 
-            // Giữ nguyên thứ tự sắp xếp của ES
             List<UUID> ids = hits.getSearchHits().stream()
                 .map(SearchHit::getContent)
                 .map(IssueSearchDocument::getId)
@@ -85,11 +105,14 @@ public class IssueSearchService {
         }
     }
 
-    private Criteria buildCriteria(UUID projectId, IssueFilterRequest filter) {
+    private Criteria buildCriteria(UUID projectId, Collection<UUID> projectIds, IssueFilterRequest filter) {
         Criteria criteria = new Criteria();
 
         if (projectId != null) {
             criteria = criteria.and(new Criteria("projectId").is(projectId.toString()));
+        } else if (projectIds != null && !projectIds.isEmpty()) {
+            List<String> ids = projectIds.stream().map(UUID::toString).toList();
+            criteria = criteria.and(new Criteria("projectId").in(ids));
         }
         if (filter.getStatusId() != null) {
             criteria = criteria.and(new Criteria("statusId").is(filter.getStatusId().toString()));
@@ -107,8 +130,6 @@ public class IssueSearchService {
             criteria = criteria.and(new Criteria("sprintIds").is(filter.getSprintId().toString()));
         }
         if (filter.getKeyword() != null && !filter.getKeyword().isBlank()) {
-            // Ngữ nghĩa như cũ: LIKE '%kw%' không phân biệt hoa thường trên title/issueKey.
-            // title_lower/issue_key_lower là field keyword lowercase do indexer sinh sẵn.
             criteria = criteria.and(new Criteria("titleLower")
                 .expression(containsWildcard(filter.getKeyword()))
                 .or(new Criteria("issueKeyLower").expression(containsWildcard(filter.getKeyword()))));

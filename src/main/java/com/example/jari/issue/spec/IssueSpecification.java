@@ -5,6 +5,7 @@ import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,12 +21,26 @@ public class IssueSpecification {
             UUID priorityId,
             UUID sprintId,
             String keyword) {
+        return filter(projectId, null, statusId, assigneeId, issueTypeId, priorityId, sprintId, keyword);
+    }
+
+    public static Specification<Issue> filter(
+            UUID projectId,
+            Collection<UUID> projectIds,
+            UUID statusId,
+            UUID assigneeId,
+            UUID issueTypeId,
+            UUID priorityId,
+            UUID sprintId,
+            String keyword) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             if (projectId != null) {
                 predicates.add(cb.equal(root.get("project").get("id"), projectId));
+            } else if (projectIds != null && !projectIds.isEmpty()) {
+                predicates.add(root.get("project").get("id").in(projectIds));
             }
             if (statusId != null) {
                 predicates.add(cb.equal(root.get("status").get("id"), statusId));
@@ -40,7 +55,6 @@ public class IssueSpecification {
                 predicates.add(cb.equal(root.get("priority").get("id"), priorityId));
             }
             if (sprintId != null) {
-                // Join sprint_issues
                 var sprintIssuesJoin = root.join("sprintIssues", jakarta.persistence.criteria.JoinType.INNER);
                 predicates.add(cb.equal(sprintIssuesJoin.get("sprint").get("id"), sprintId));
             }

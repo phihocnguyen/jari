@@ -19,6 +19,8 @@ public class IssueResponse {
     private String title;
     private String description;
     private UUID projectId;
+    private String projectName;
+    private String projectKey;
     private String issueType;
     private String status;
     private String statusCategory;
