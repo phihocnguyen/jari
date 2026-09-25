@@ -85,7 +85,7 @@ class AutomationServiceTest {
         sibling.setStatus(done);
 
         when(issueRepository.findByParentId(parent.getId())).thenReturn(List.of(issue, sibling));
-        when(statusRepository.findByCategoryIgnoreCase("DONE")).thenReturn(Optional.of(done));
+        when(statusRepository.findByNameIgnoreCase("DONE")).thenReturn(Optional.of(done));
         when(issueRepository.save(parent)).thenReturn(parent);
         when(logRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 

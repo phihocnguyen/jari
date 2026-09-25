@@ -224,6 +224,24 @@ sequenceDiagram
 5. In the UI: **Workspace Settings → Integrations → Connect GitHub**, then map each repo to a project.
 6. Smoke test: branch `feature/APP-1-x`, commit `APP-1 msg`, PR title `APP-1 …` → appear on ticket Development panel.
 
+**Local tunnel (ngrok in Docker)** — expose host `:8080` without installing ngrok on the machine:
+
+```bash
+# 1. Put token in .env  (https://dashboard.ngrok.com/get-started/your-authtoken)
+NGROK_AUTHTOKEN=...
+
+# 2. Start Spring Boot on the host (port 8080), then:
+docker compose --profile tunnel up -d ngrok
+
+# 3. Copy the https URL from:
+#    http://localhost:4040   or   docker compose logs ngrok
+# Use it as GitHub App Webhook + Setup URL base, e.g.:
+#    https://xxxx.ngrok-free.app/api/v1/webhooks/github
+#    https://xxxx.ngrok-free.app/api/v1/github/setup
+```
+
+Also set `BACKEND_BASE_URL` to that https URL if you rely on it in docs/callbacks.
+
 ### Admin APIs
 
 | Method | Path | Purpose |

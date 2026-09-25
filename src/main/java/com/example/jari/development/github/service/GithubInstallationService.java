@@ -39,6 +39,7 @@ public class GithubInstallationService {
     private final WorkspaceMemberRepository memberRepository;
     private final ProjectRepository projectRepository;
 
+    @Transactional(readOnly = true)
     public String buildInstallUrl(UUID userId, UUID workspaceId) {
         requireAdmin(userId, workspaceId);
         AppProperties.Github gh = appProperties.getGithub();
@@ -149,7 +150,7 @@ public class GithubInstallationService {
     @Transactional(readOnly = true)
     public List<InstallationView> listInstallations(UUID userId, UUID workspaceId) {
         requireAdmin(userId, workspaceId);
-        List<GithubInstallation> installs = installationRepository.findByWorkspaceId(workspaceId);
+        List<GithubInstallation> installs = installationRepository.findByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
         List<InstallationView> result = new ArrayList<>();
         for (GithubInstallation inst : installs) {
             List<RepoView> repos = repoRepository.findByInstallationId(inst.getId()).stream()

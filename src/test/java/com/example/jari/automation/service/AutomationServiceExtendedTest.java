@@ -55,7 +55,7 @@ class AutomationServiceExtendedTest {
 
         when(issueRepository.findById(parent.getId())).thenReturn(Optional.of(parent));
         when(issueRepository.findByParentId(parent.getId())).thenReturn(List.of(subtask));
-        when(statusRepository.findByCategoryIgnoreCase("DONE")).thenReturn(Optional.of(done));
+        when(statusRepository.findByNameIgnoreCase("DONE")).thenReturn(Optional.of(done));
         when(issueRepository.save(parent)).thenReturn(parent);
         when(logRepository.save(any())).thenAnswer(inv -> {
             IssueAutomationLog log = inv.getArgument(0);

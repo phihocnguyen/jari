@@ -14,7 +14,7 @@ public interface GithubInstallationRepository extends JpaRepository<GithubInstal
     @EntityGraph(attributePaths = {"workspace"})
     Optional<GithubInstallation> findByInstallationId(Long installationId);
 
-    List<GithubInstallation> findByWorkspaceId(UUID workspaceId);
+    List<GithubInstallation> findByWorkspaceIdOrderByCreatedAtDesc(UUID workspaceId);
 
     boolean existsByWorkspaceIdAndInstallationId(UUID workspaceId, Long installationId);
 }

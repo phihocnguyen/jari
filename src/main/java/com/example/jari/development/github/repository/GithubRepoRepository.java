@@ -21,6 +21,6 @@ public interface GithubRepoRepository extends JpaRepository<GithubRepo, UUID> {
     @Query("SELECT r FROM GithubRepo r JOIN FETCH r.installation LEFT JOIN FETCH r.project WHERE r.githubRepoId = :githubRepoId")
     Optional<GithubRepo> findByGithubRepoIdWithInstallation(@Param("githubRepoId") Long githubRepoId);
 
-    @Query("SELECT r FROM GithubRepo r LEFT JOIN FETCH r.project WHERE r.installation.id = :installationId")
+    @Query("SELECT r FROM GithubRepo r LEFT JOIN FETCH r.project WHERE r.installation.id = :installationId ORDER BY r.createdAt DESC")
     List<GithubRepo> findByInstallationId(@Param("installationId") UUID installationId);
 }

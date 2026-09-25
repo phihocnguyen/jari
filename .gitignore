@@ -38,3 +38,5 @@ build/
 monitoring/.env
 k6/.env
 k6/results/
+github-app.private-key.pem
+src/main/resources/application-local.yaml

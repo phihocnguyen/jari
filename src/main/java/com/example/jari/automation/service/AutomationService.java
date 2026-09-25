@@ -91,8 +91,7 @@ public class AutomationService {
             );
 
             if (allDone && (parent.getStatus() == null || !"DONE".equalsIgnoreCase(parent.getStatus().getCategory()))) {
-                Optional<Status> doneStatus = statusRepository.findByCategoryIgnoreCase("DONE")
-                    .or(() -> statusRepository.findByName("DONE"));
+                Optional<Status> doneStatus = resolveDoneStatus();
                 if (doneStatus.isPresent()) {
                     parent.setStatus(doneStatus.get());
                     issueRepository.save(parent);
@@ -124,8 +123,7 @@ public class AutomationService {
                     boolean allDone = subtasks.stream().allMatch(s -> s.getStatus() != null &&
                         ("DONE".equalsIgnoreCase(s.getStatus().getCategory()) || "DONE".equalsIgnoreCase(s.getStatus().getName())));
                     if (allDone) {
-                        Optional<Status> doneStatus = statusRepository.findByCategoryIgnoreCase("DONE")
-                            .or(() -> statusRepository.findByName("DONE"));
+                        Optional<Status> doneStatus = resolveDoneStatus();
                         doneStatus.ifPresent(issue::setStatus);
                         issueRepository.save(issue);
                         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issue.getId()));
@@ -159,6 +157,15 @@ public class AutomationService {
             .build();
 
         return toResponse(logRepository.save(autoLog));
+    }
+
+    /** Prefer the named DONE status; category DONE also includes CANCELLED. */
+    private Optional<Status> resolveDoneStatus() {
+        return statusRepository.findByNameIgnoreCase("DONE")
+            .or(() -> statusRepository.findAllByCategoryIgnoreCase("DONE").stream()
+                .filter(s -> "DONE".equalsIgnoreCase(s.getName()))
+                .findFirst())
+            .or(() -> statusRepository.findAllByCategoryIgnoreCase("DONE").stream().findFirst());
     }
 
     private AutomationLogResponse toResponse(IssueAutomationLog autoLog) {
