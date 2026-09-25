@@ -1,0 +1,16 @@
+.git
+.github
+.idea
+.vscode
+*.iml
+target
+k6
+monitoring
+implementation-plan.md
+API_DOCUMENTATION.md
+README.md
+.env
+.env.*
+*.pem
+.mvn/wrapper/maven-wrapper.jar
+HELP.md
