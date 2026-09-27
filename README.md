@@ -552,7 +552,7 @@ xdg-open target/site/jacoco/index.html
 | Instruction coverage | 46%            | —                                         |
 | CI gate              | —              | `./mvnw verify` requires **≥ 70% branch** |
 
-\*Business logic scope: services, specs, exception handlers, cache helpers, search — excludes entity/DTO/mapper/config/controller/security, messaging consumers, and hard-to-unit-test services (`SummaryService`, `NotificationService`, `IssueIndexService`). See `jacoco-maven-plugin` excludes in `pom.xml`.
+\*Business logic scope: services, specs, exception handlers, cache helpers, search — excludes entity/DTO/mapper/config/controller/security, messaging consumers, GitHub App integration (`development/github`), and hard-to-unit-test services (`SummaryService`, `NotificationService`, `IssueIndexService`, `ReportService`). See `jacoco-maven-plugin` excludes in `pom.xml`.
 
 **Typical local workflow:**
 

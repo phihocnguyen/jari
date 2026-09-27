@@ -1,0 +1,12 @@
+---
+description: Git commit message conventions for this repo
+alwaysApply: true
+---
+
+# Git commits
+
+- Follow [Conventional Commits](./CONTRIBUTING.md): `type(scope): summary`
+- Common types: `feat`, `fix`, `perf`, `test`, `ci`, `docs`, `chore`, `refactor`
+- Summary in imperative mood; keep the first line concise
+- **Never** add `Co-authored-by:` (or similar trailer) for Cursor or any AI agent
+- Do not commit secrets, `.env`, or `.m2/`

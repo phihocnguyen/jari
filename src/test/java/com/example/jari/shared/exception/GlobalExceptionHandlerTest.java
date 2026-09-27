@@ -80,4 +80,89 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().getError()).isEqualTo("INTERNAL_ERROR");
     }
+
+    @Test
+    void handleGeneric_mapsPoolExhaustionTo503() {
+        ResponseEntity<ErrorResponse> response = handler.handleGeneric(
+            new RuntimeException("Connection is not available, request timed out after 5000ms."));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody().getError()).isEqualTo("DB_POOL_EXHAUSTED");
+    }
+
+    @Test
+    void handleGeneric_mapsHikariMessageTo503() {
+        ResponseEntity<ErrorResponse> response = handler.handleGeneric(
+            new RuntimeException("HikariDataSource - connection is not available"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody().getError()).isEqualTo("DB_POOL_EXHAUSTED");
+    }
+
+    @Test
+    void handleGeneric_truncatesLongMessages() {
+        String longMsg = "x".repeat(400);
+        ResponseEntity<ErrorResponse> response = handler.handleGeneric(new RuntimeException(longMsg));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody().getMessage().length()).isLessThanOrEqualTo(300);
+    }
+
+    @Test
+    void handleGeneric_returnsNullOnClientAbort() {
+        ResponseEntity<ErrorResponse> response = handler.handleGeneric(
+            new RuntimeException("Broken pipe"));
+
+        assertThat(response).isNull();
+    }
+
+    @Test
+    void handleDataIntegrity_returnsConflict() {
+        var ex = mock(org.springframework.dao.DataIntegrityViolationException.class);
+        when(ex.getMostSpecificCause()).thenReturn(new RuntimeException("duplicate key"));
+
+        ResponseEntity<ErrorResponse> response = handler.handleDataIntegrity(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().getError()).isEqualTo("CONFLICT");
+    }
+
+    @Test
+    void handleCannotAcquireLock_returnsServiceUnavailable() {
+        var ex = mock(org.springframework.dao.CannotAcquireLockException.class);
+        when(ex.getMessage()).thenReturn("could not obtain lock");
+
+        ResponseEntity<ErrorResponse> response = handler.handleLock(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody().getError()).isEqualTo("DB_LOCK");
+    }
+
+    @Test
+    void handleDataAccessResource_returnsServiceUnavailable() {
+        var ex = mock(org.springframework.dao.DataAccessResourceFailureException.class);
+        when(ex.getMessage()).thenReturn("pool exhausted");
+
+        ResponseEntity<ErrorResponse> response = handler.handleDataAccessResource(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody().getError()).isEqualTo("DB_UNAVAILABLE");
+    }
+
+    @Test
+    void handleClientGone_doesNotThrow() {
+        var ex = mock(org.springframework.web.context.request.async.AsyncRequestNotUsableException.class);
+        when(ex.getMessage()).thenReturn("disconnected");
+        handler.handleClientGone(ex);
+    }
+
+    @Test
+    void handleIoException_ignoresBrokenPipe() throws Exception {
+        handler.handleIoException(new java.io.IOException("Broken pipe"));
+    }
+
+    @Test
+    void handleIoException_logsOtherIoErrors() throws Exception {
+        handler.handleIoException(new java.io.IOException("disk full"));
+    }
 }

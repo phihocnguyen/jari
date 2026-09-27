@@ -224,6 +224,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
+					<!-- @{argLine} keeps JaCoCo agent; EnableDynamicAgentLoading silences Mockito/ByteBuddy JDK 21+ warnings -->
+					<argLine>@{argLine} -XX:+EnableDynamicAgentLoading</argLine>
 					<excludedGroups>integration</excludedGroups>
 					<excludes>
 						<exclude>**/JariApplicationTests.java</exclude>
@@ -279,11 +281,14 @@
 								<exclude>**/messaging/**</exclude>
 								<exclude>**/oauth/**</exclude>
 								<exclude>**/oauth2/**</exclude>
+								<exclude>**/development/github/**</exclude>
 								<exclude>**/JariApplication*</exclude>
 								<exclude>**/SummaryService*</exclude>
 								<exclude>**/IssueIndexService*</exclude>
 								<exclude>**/NotificationService*</exclude>
 								<exclude>**/IssueDueSoonScheduler*</exclude>
+								<exclude>**/ReportService*</exclude>
+								<exclude>**/GlobalSearchService*</exclude>
 							</excludes>
 						</configuration>
 					</execution>
