@@ -1,5 +1,5 @@
 # ---- build ----
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /workspace
 
 COPY mvnw .
@@ -12,7 +12,7 @@ RUN chmod +x mvnw \
 	&& cp target/jari-*.jar /workspace/app.jar
 
 # ---- runtime ----
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S jari && adduser -S jari -G jari

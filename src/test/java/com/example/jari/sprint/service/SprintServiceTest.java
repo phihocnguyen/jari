@@ -6,13 +6,11 @@ import com.example.jari.issue.entity.Status;
 import com.example.jari.issue.mapper.IssueMapper;
 import com.example.jari.issue.repository.IssueRepository;
 import com.example.jari.issue.repository.StatusRepository;
-import com.example.jari.issue.service.IssueHydrationService;
 import com.example.jari.project.entity.Project;
 import com.example.jari.project.repository.ProjectRepository;
 import com.example.jari.shared.cache.ReadCacheEviction;
 import com.example.jari.shared.exception.ApiException;
 import com.example.jari.shared.exception.ConflictException;
-import com.example.jari.shared.exception.ResourceNotFoundException;
 import com.example.jari.sprint.dto.AddIssueToSprintRequest;
 import com.example.jari.sprint.dto.CreateSprintRequest;
 import com.example.jari.sprint.dto.SprintResponse;
@@ -53,7 +51,6 @@ class SprintServiceTest {
     @Mock private SprintMapper sprintMapper;
     @Mock private IssueMapper issueMapper;
     @Mock private ReadCacheEviction readCacheEviction;
-    @Mock private IssueHydrationService issueHydrationService;
 
     @InjectMocks private SprintService sprintService;
 
@@ -129,11 +126,16 @@ class SprintServiceTest {
     }
 
     @Test
-    void getBoard_requiresActiveSprint() {
+    void getBoard_returnsEmptyColumnsWhenNoActiveSprint() {
+        Status status = TestFixtures.status(UUID.randomUUID(), "To Do", "TODO");
         when(sprintRepository.findByProjectIdAndStatus(projectId, SprintStatus.ACTIVE)).thenReturn(Optional.empty());
+        when(statusRepository.findAll()).thenReturn(List.of(status));
 
-        assertThatThrownBy(() -> sprintService.getBoard(projectId))
-            .isInstanceOf(ResourceNotFoundException.class);
+        var board = sprintService.getBoard(projectId);
+
+        assertThat(board).hasSize(1);
+        assertThat(board.get(0).getIssues()).isEmpty();
+        assertThat(board.get(0).getStatusId()).isEqualTo(status.getId());
     }
 
     @Test
@@ -153,7 +155,7 @@ class SprintServiceTest {
 
         assertThat(board).hasSize(1);
         assertThat(board.get(0).getIssues()).hasSize(1);
-        verify(issueHydrationService).hydrateCollections(anyList());
+        verify(issueMapper).toResponse(issue);
     }
 
     @Test

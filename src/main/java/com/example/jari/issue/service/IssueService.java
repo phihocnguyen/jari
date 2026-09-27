@@ -21,6 +21,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -29,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.example.jari.sprint.entity.SprintStatus;
 import com.example.jari.sprint.repository.SprintIssueRepository;
 
 import lombok.extern.slf4j.Slf4j;
@@ -60,9 +64,67 @@ public class IssueService {
     private final ApplicationEventPublisher eventPublisher;
     private final ReadCacheEviction readCacheEviction;
     private final IssueHydrationService issueHydrationService;
+    private final IssueKeyAllocator issueKeyAllocator;
+    private final TransactionTemplate transactionTemplate;
 
     private void evictReadCaches(Issue issue) {
-        readCacheEviction.evictIssue(issue.getId(), issue.getIssueKey(), issue.getProject().getId());
+        evictReadCaches(issue, isOnActiveSprintBoard(issue));
+    }
+
+    private void evictReadCaches(Issue issue, boolean boardAffected) {
+        UUID issueId = issue.getId();
+        String issueKey = issue.getIssueKey();
+        UUID projectId = issue.getProject() != null ? issue.getProject().getId() : null;
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    readCacheEviction.evictIssue(issueId, issueKey, projectId, boardAffected);
+                }
+            });
+        } else {
+            readCacheEviction.evictIssue(issueId, issueKey, projectId, boardAffected);
+        }
+    }
+
+    /**
+     * Active-sprint board is a hot key. Only treat a write as board-affecting when the issue
+     * is (or was) on an ACTIVE sprint. Unknown/lazy failures default to {@code true} (safe).
+     */
+    private boolean isOnActiveSprintBoard(Issue issue) {
+        try {
+            var sprintIssues = issue.getSprintIssues();
+            if (sprintIssues == null || sprintIssues.isEmpty()) {
+                return false;
+            }
+            for (var si : sprintIssues) {
+                var sprint = si.getSprint();
+                if (sprint == null) {
+                    return true;
+                }
+                if (sprint.getStatus() == SprintStatus.ACTIVE) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (RuntimeException ex) {
+            log.debug("Could not determine sprint board membership for {}: {}",
+                issue.getIssueKey(), ex.getMessage());
+            return true;
+        }
+    }
+
+    private void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
     }
 
     private void notifyWatchersIssueUpdated(Issue issue, User actor) {
@@ -76,14 +138,31 @@ public class IssueService {
         }
     }
 
-    @Transactional
+    /**
+     * Allocate key in its own short TX first (releases counter-row lock), then insert
+     * in a separate TX so concurrent creates on the same project do not pile up on
+     * Hikari while waiting for that lock. Side effects run after insert commit.
+     */
     public IssueResponse create(UUID projectId, UUID reporterId, CreateIssueRequest req) {
+        int nextNum = issueKeyAllocator.allocateNext(projectId);
+        return transactionTemplate.execute(status -> createWithKey(projectId, reporterId, req, nextNum));
+    }
+
+    private IssueResponse createWithKey(UUID projectId, UUID reporterId, CreateIssueRequest req, int nextNum) {
         Project project = projectRepository.findById(projectId)
             .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
         User reporter = userRepository.findById(reporterId)
             .orElseThrow(() -> new ResourceNotFoundException("User", reporterId));
+        IssueType issueType = resolveIssueType(req.getIssueTypeId());
+        Status status = resolveStatus(req.getStatusId());
+        Priority priority = resolvePriority(req.getPriorityId());
+        User assignee = req.getAssigneeId() != null ? resolveUser(req.getAssigneeId()) : null;
+        Issue parent = req.getParentId() != null ? resolveIssue(req.getParentId()) : null;
+        var sprint = req.getSprintId() != null
+            ? sprintRepository.findById(req.getSprintId())
+                .orElseThrow(() -> new ResourceNotFoundException("Sprint", req.getSprintId()))
+            : null;
 
-        int nextNum = issueRepository.findMaxIssueNumber(projectId) + 1;
         String issueKey = project.getProjectKey() + "-" + nextNum;
 
         Issue issue = Issue.builder()
@@ -91,12 +170,12 @@ public class IssueService {
             .issueKey(issueKey)
             .title(req.getTitle())
             .description(req.getDescription())
-            .issueType(resolveIssueType(req.getIssueTypeId()))
-            .status(resolveStatus(req.getStatusId()))
-            .priority(resolvePriority(req.getPriorityId()))
+            .issueType(issueType)
+            .status(status)
+            .priority(priority)
             .reporter(reporter)
-            .assignee(req.getAssigneeId() != null ? resolveUser(req.getAssigneeId()) : null)
-            .parent(req.getParentId() != null ? resolveIssue(req.getParentId()) : null)
+            .assignee(assignee)
+            .parent(parent)
             .storyPoints(req.getStoryPoints())
             .startDate(req.getStartDate())
             .dueDate(req.getDueDate())
@@ -104,27 +183,40 @@ public class IssueService {
 
         Issue saved = issueRepository.save(issue);
 
-        if (saved.getAssignee() != null) {
-            notificationService.notifyIssueAssigned(saved, reporter, saved.getAssignee());
-        }
-        notificationService.notifyIssueDueSoon(saved, saved.getAssignee());
-
-        if (req.getSprintId() != null) {
-            var sprint = sprintRepository.findById(req.getSprintId())
-                .orElseThrow(() -> new ResourceNotFoundException("Sprint", req.getSprintId()));
+        if (sprint != null) {
             var si = com.example.jari.sprint.entity.SprintIssue.builder()
                 .id(new com.example.jari.sprint.entity.SprintIssueId(sprint.getId(), saved.getId()))
                 .sprint(sprint)
                 .issue(saved)
                 .position(BigDecimal.valueOf(1000))
                 .build();
-            sprintIssueRepository.save(si);
             saved.getSprintIssues().add(si);
+            saved = issueRepository.save(saved);
         }
 
-        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(saved.getId()));
-        evictReadCaches(saved);
-        return mapper.toResponse(issueHydrationService.hydrateCollections(saved));
+        final Issue savedRef = saved;
+        final User reporterRef = reporter;
+        final User assigneeRef = saved.getAssignee();
+        final boolean notifyDue = saved.getDueDate() != null;
+        final UUID savedId = saved.getId();
+        // Publish inside TX so RabbitMQEventBridge @TransactionalEventListener(AFTER_COMMIT) runs
+        eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(savedId));
+        runAfterCommit(() -> {
+            try {
+                if (assigneeRef != null) {
+                    notificationService.notifyIssueAssigned(savedRef, reporterRef, assigneeRef);
+                }
+                if (notifyDue) {
+                    notificationService.notifyIssueDueSoon(savedRef, assigneeRef);
+                }
+            } catch (Exception e) {
+                log.warn("Post-create side effects failed for {}: {}", savedId, e.getMessage());
+            }
+        });
+        boolean boardAffected = sprint != null && sprint.getStatus() == SprintStatus.ACTIVE;
+        evictReadCaches(saved, boardAffected);
+
+        return mapper.toResponse(saved);
     }
 
     @Cacheable(value = CacheNames.ISSUE_LIST, key = "T(com.example.jari.shared.cache.IssueFilterCacheKey).of(#projectId, #filter)")
@@ -437,8 +529,8 @@ public class IssueService {
         }
 
         eventPublisher.publishEvent(com.example.jari.issue.search.IssueIndexEvent.upsert(issue.getId()));
-        evictReadCaches(issue);
-        readCacheEviction.evictBoard(issue.getProject().getId());
+        // Sprint membership change always invalidates board (add or remove from active sprint).
+        evictReadCaches(issue, true);
         return mapper.toResponse(issue);
     }
 

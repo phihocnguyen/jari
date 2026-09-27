@@ -3,7 +3,6 @@ package com.example.jari.sprint.service;
 import com.example.jari.issue.entity.Issue;
 import com.example.jari.issue.mapper.IssueMapper;
 import com.example.jari.issue.repository.IssueRepository;
-import com.example.jari.issue.service.IssueHydrationService;
 import com.example.jari.issue.repository.StatusRepository;
 import com.example.jari.project.entity.Project;
 import com.example.jari.project.repository.ProjectRepository;
@@ -40,7 +39,6 @@ public class SprintService {
     private final SprintMapper sprintMapper;
     private final IssueMapper issueMapper;
     private final ReadCacheEviction readCacheEviction;
-    private final IssueHydrationService issueHydrationService;
 
     @Transactional
     public SprintResponse create(UUID projectId, CreateSprintRequest req) {
@@ -133,21 +131,34 @@ public class SprintService {
     @Cacheable(value = CacheNames.PROJECT_BOARD, key = "#projectId")
     @Transactional(readOnly = true)
     public List<BoardColumnResponse> getBoard(UUID projectId) {
+        var statuses = statusRepository.findAll();
         Sprint activeSprint = sprintRepository.findByProjectIdAndStatus(projectId, SprintStatus.ACTIVE)
-            .orElseThrow(() -> new ResourceNotFoundException("Active Sprint", projectId));
+            .orElse(null);
+
+        if (activeSprint == null) {
+            return statuses.stream().map(status -> BoardColumnResponse.builder()
+                .statusId(status.getId())
+                .statusName(status.getName())
+                .statusCategory(status.getCategory())
+                .issues(List.of())
+                .build()).collect(Collectors.toList());
+        }
 
         List<SprintIssue> sprintIssues = sprintIssueRepository
             .findBySprintIdWithIssues(activeSprint.getId());
 
-        List<Issue> boardIssues = sprintIssues.stream().map(SprintIssue::getIssue).toList();
-        issueHydrationService.hydrateCollections(boardIssues);
-
-        var statuses = statusRepository.findAll();
-
+        // Board cards do not need labels/components/description — skip bag hydration
+        // (findBySprintIdWithIssues already JOIN FETCHes scalars used on the board).
         return statuses.stream().map(status -> {
             List<com.example.jari.issue.dto.IssueResponse> issues = sprintIssues.stream()
                 .filter(si -> si.getIssue().getStatus().getId().equals(status.getId()))
-                .map(si -> issueMapper.toResponse(si.getIssue()))
+                .map(si -> {
+                    var resp = issueMapper.toResponse(si.getIssue());
+                    resp.setDescription(null);
+                    resp.setLabels(List.of());
+                    resp.setComponents(List.of());
+                    return resp;
+                })
                 .collect(Collectors.toList());
             return BoardColumnResponse.builder()
                 .statusId(status.getId())

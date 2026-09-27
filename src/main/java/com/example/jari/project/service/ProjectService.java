@@ -1,6 +1,7 @@
 package com.example.jari.project.service;
 
 import com.example.jari.notification.service.NotificationService;
+import com.example.jari.issue.service.IssueKeyAllocator;
 import com.example.jari.project.dto.*;
 import com.example.jari.project.entity.*;
 import com.example.jari.project.mapper.ProjectMapper;
@@ -38,6 +39,7 @@ public class ProjectService {
     private final ProjectMapper mapper;
     private final NotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
+    private final IssueKeyAllocator issueKeyAllocator;
 
     @Transactional
     public ProjectResponse create(UUID workspaceId, UUID requesterId, CreateProjectRequest req) {
@@ -50,7 +52,7 @@ public class ProjectService {
             ? userRepository.findById(req.getLeadId()).orElseThrow(() -> new ResourceNotFoundException("User", req.getLeadId()))
             : null;
 
-        Project project = projectRepository.save(Project.builder()
+        Project project = projectRepository.saveAndFlush(Project.builder()
             .workspace(ws)
             .name(req.getName())
             .projectKey(req.getProjectKey())
@@ -61,6 +63,9 @@ public class ProjectService {
             .avatarColor(req.getAvatarColor())
             .status(ProjectStatus.ACTIVE)
             .build());
+
+        // Counter uses JdbcTemplate in the same TX — must flush project first or FK fails (409).
+        issueKeyAllocator.ensureCounterRow(project.getId());
 
         User requester = userRepository.findById(requesterId)
             .orElseThrow(() -> new ResourceNotFoundException("User", requesterId));

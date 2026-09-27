@@ -25,6 +25,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -59,6 +61,8 @@ class IssueServiceExtendedTest {
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private ReadCacheEviction readCacheEviction;
     @Mock private IssueHydrationService issueHydrationService;
+    @Mock private IssueKeyAllocator issueKeyAllocator;
+    @Mock private TransactionTemplate transactionTemplate;
 
     @InjectMocks private IssueService issueService;
 
@@ -85,6 +89,11 @@ class IssueServiceExtendedTest {
         issue.setStatus(todo);
         issue.setPriority(TestFixtures.priority(UUID.randomUUID(), "HIGH"));
         issue.setIssueType(TestFixtures.issueType(UUID.randomUUID(), "Story"));
+
+        lenient().when(transactionTemplate.execute(any())).thenAnswer(inv -> {
+            TransactionCallback<?> callback = inv.getArgument(0);
+            return callback.doInTransaction(null);
+        });
     }
 
     @Test
@@ -170,7 +179,7 @@ class IssueServiceExtendedTest {
         issueService.updateSprint(issueId, actorId, newSprintId);
 
         verify(historyService).record(eq(issue), eq(actor), eq("sprint"), any(), eq(newSprint.getName()));
-        verify(readCacheEviction).evictBoard(issue.getProject().getId());
+        verify(readCacheEviction).evictIssue(eq(issueId), anyString(), eq(issue.getProject().getId()), eq(true));
     }
 
     @Test

@@ -17,8 +17,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     /**
-     * loadUserByUsername accepts either email OR userId (UUID string)
-     * JwtAuthenticationFilter calls it with userId string.
+     * Used by form-login / AuthenticationManager paths.
+     * JWT filter builds {@link CustomUserDetails} from token claims (no DB hit).
+     * Accepts either email OR userId (UUID string).
      */
     @Override
     public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {

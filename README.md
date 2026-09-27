@@ -87,7 +87,7 @@ flowchart LR
 
 | Layer      | Technology                                             |
 | ---------- | ------------------------------------------------------ |
-| API        | Spring Boot 4.1, Java 17, Spring Security, MapStruct   |
+| API        | Spring Boot 4.1, Java 21 (virtual threads), Spring Security, MapStruct |
 | Database   | PostgreSQL 16, Flyway migrations, HikariCP             |
 | Cache      | Redis 7, Jackson JSON serialization                    |
 | Search     | Elasticsearch (Spring Data ES + Logstash JDBC indexer) |
@@ -102,7 +102,7 @@ flowchart LR
 
 ### Prerequisites
 
-- Java 17+
+- Java 21+
 - Maven 3.9+
 - Docker & Docker Compose
 - Node.js 20+ (for frontend — see [jari-client](https://github.com/phihocnguyen/jari-client))
@@ -323,7 +323,7 @@ Interactive docs: http://localhost:8080/swagger-ui.html
 
 ## Caching
 
-Read-heavy endpoints use Spring Cache backed by Redis:
+Read-heavy endpoints use Spring Cache backed by Redis (TTL 5 minutes by default):
 
 | Cache name        | Endpoint pattern                                   |
 | ----------------- | -------------------------------------------------- |
@@ -333,6 +333,18 @@ Read-heavy endpoints use Spring Cache backed by Redis:
 | `project:board`   | Active sprint board                                |
 | `project:summary` | Project dashboard metrics                          |
 
+### Invalidation (write path)
+
+On issue create/update/delete, `ReadCacheEviction` invalidates:
+
+- `issue:detail` for that issue (by id and key)
+- `project:summary` for the project
+- `project:board` **only if** the issue is on an **ACTIVE** sprint (backlog-only writes skip board eviction)
+
+`issue:list` is **not** cleared on every write (avoids global cache storms). List entries expire via Redis TTL.
+
+Board responses omit description / label / component bags so rebuilds stay smaller when the cache does miss.
+
 Cache hit rate is exposed via Micrometer (`cache_gets_total{result="hit|miss"}`) and visualized in Grafana.
 
 After changing cache serialization or DTOs, flush Redis before retesting:
@@ -340,6 +352,24 @@ After changing cache serialization or DTOs, flush Redis before retesting:
 ```bash
 redis-cli FLUSHDB
 ```
+
+---
+
+## Performance notes (write-heavy)
+
+Optimizations aimed at high-concurrency writes on a single node:
+
+| Area | Change |
+| ---- | ------ |
+| Auth | Hot path is **JWT verify only** — no per-request `UserDetails` DB load |
+| Runtime | Java 21 **virtual threads** (`spring.threads.virtual.enabled=true`) |
+| Issue keys | Per-project counter via `UPDATE … RETURNING` in a **short separate TX**, then insert TX (avoids holding the counter-row lock across the full create) |
+| Project create | `saveAndFlush` before inserting `project_issue_counter` (same TX) so FK does not fail |
+| Indexing | `IssueIndexEvent` published **inside** the write TX → RabbitMQ after commit → ES async (not on the request thread) |
+| Board cache | Slim DTO on board; conditional board eviction (see Caching) |
+| List cache | No full `issue:list` clear on every write |
+
+Hikari pool defaults to `HIKARI_MAX_POOL_SIZE=100` (keep below Postgres `max_connections`). Virtual threads do **not** increase DB capacity — sustained concurrent DB work is still bounded by the pool.
 
 ---
 
@@ -352,29 +382,73 @@ cp k6/.env.example k6/.env
 cd k6
 
 ./run.sh benchmark.js   # smoke + read dashboard + mixed workload
-./run.sh load.js        # fixed stress (configure VUs / RPS in k6/.env)
+./run.sh load.js        # fixed stress — read dashboard (configure VUs / RPS in k6/.env)
+./run.sh write-load.js  # field-update heavy on a small seed pool
 ./run.sh capacity.js    # stepped capacity discovery
 ```
 
-Example stress profile (`k6/.env`):
+### `write-load.js` (recommended local write baseline)
+
+Designed to measure **status / field update latency**, not board growth:
+
+| Setting | Typical local value | Meaning |
+| ------- | ------------------- | ------- |
+| `K6_CONCURRENT_USERS` | `100` | Align roughly with Hikari pool size |
+| `K6_THINK_MS` | `300` | Think time between iterations |
+| `K6_SEED_ISSUES` | `5` | Fixed hot issue pool |
+| `K6_LOAD_DURATION` | `5m` | Steady state after 1m ramp |
+
+Workload mix (~):
+
+- **10%** create — **backlog only** (no `sprintId`)
+- **70%** update — status / title+description / priority on the **seed pool only**
+- **20%** read — mostly issue detail + list; board only occasionally
+
+Setup always creates an **ephemeral workspace + project**. Teardown deletes the workspace (DB `CASCADE` removes issues/sprints). Set `K6_SKIP_CLEANUP=true` to keep data for debugging.
 
 ```bash
+# k6/.env example
 BASE_URL=http://localhost:8080
-K6_LOAD_MODE=vus
-K6_CONCURRENT_USERS=1000
-K6_LOAD_DURATION=10m
+AUTH_EMAIL=user@example.com
+AUTH_PASSWORD=Password123@
+K6_CONCURRENT_USERS=100
+K6_THINK_MS=300
+K6_LOAD_DURATION=5m
+K6_SEED_ISSUES=5
+K6_MAX_VUS=150
 ```
 
-**Reference benchmark** (local, single JVM, read-only dashboard, 7 cached endpoints):
+```bash
+cd k6 && ./run.sh write-load.js
+```
 
-| Metric               | Result                                     |
-| -------------------- | ------------------------------------------ |
-| Concurrent users     | 1,000 VU                                   |
-| HTTP throughput      | ~1,806 req/s                               |
-| Total requests       | ~1.25M (11.5 min run)                      |
-| Error rate           | 0%                                         |
-| p95 / p99 latency    | ~993 ms / ~1.19 s                          |
-| Redis cache hit rate | **~99.99%** on `@Cacheable` endpoints only |
+Report **write** and **read** p95 separately (`workload:write` / `workload:read`). Do not compare write-heavy numbers to read-only `load.js` (dashboard GETs with high cache hit rate).
+
+**Do not** attach most creates to the active sprint in this scenario — that grows the board without bound, inflates `data_received`, and makes read p95 look like a multi-second failure even when updates are fine.
+
+### Local baseline (indicative)
+
+Single-node laptop run of `write-load.js` with the settings above (100 VUs, 5 seed backlog issues, ~300ms think time, ~6.5m including ramp). **Not** a production SLA — hardware and mix will change results.
+
+| Metric | Value |
+| ------ | ----- |
+| Checks / errors | 100% checks, **0%** `http_req_failed` |
+| Throughput | ~224 req/s · ~22 create/s |
+| Overall | med ~9ms · **p95 ~140ms** · p99 ~2.2s |
+| `workload:write` | med ~9ms · **p95 ~232ms** · p99 ~3.0s |
+| `workload:read` | med ~5ms · **p95 ~23ms** · p99 ~59ms |
+| `data_received` | ~150 MB (vs multi-GB when creates were attached to the active sprint) |
+| Redis cache hit rate (overall, ~5m rate during/around this mix) | typically **~10–60%** (write-invalidate heavy; not comparable to read-only `load.js` ~99%+) |
+
+Earlier mixes that put most creates on the active sprint inflated board payloads and pushed **read p95 into multi-second** territory; that is a scenario artifact, not the update-path baseline above.
+
+Capture hit rate while the test runs (Prometheus must scrape the app):
+
+```bash
+# overall hit ratio (0–1)
+curl -sG 'http://localhost:9090/api/v1/query' \
+  --data-urlencode 'query=jari:cache_hit_rate_overall:5m'
+```
 
 > Latency and throughput reflect a **single-node local** setup. Production with horizontal scaling will differ.
 

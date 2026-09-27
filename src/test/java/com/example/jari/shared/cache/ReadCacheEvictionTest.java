@@ -22,9 +22,6 @@ class ReadCacheEvictionTest {
     private Cache issueDetailCache;
 
     @Mock
-    private Cache issueListCache;
-
-    @Mock
     private Cache boardCache;
 
     @Mock
@@ -40,7 +37,6 @@ class ReadCacheEvictionTest {
         String issueKey = "tis-1";
 
         when(cacheManager.getCache(CacheNames.ISSUE_DETAIL)).thenReturn(issueDetailCache);
-        when(cacheManager.getCache(CacheNames.ISSUE_LIST)).thenReturn(issueListCache);
         when(cacheManager.getCache(CacheNames.PROJECT_BOARD)).thenReturn(boardCache);
         when(cacheManager.getCache(CacheNames.PROJECT_SUMMARY)).thenReturn(summaryCache);
 
@@ -51,7 +47,21 @@ class ReadCacheEvictionTest {
         verify(issueDetailCache).evict("tis-1");
         verify(summaryCache).evict(projectId);
         verify(boardCache).evict(projectId);
-        verify(issueListCache).clear();
+    }
+
+    @Test
+    void evictIssue_canSkipBoardWhenNotAffected() {
+        UUID issueId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
+
+        when(cacheManager.getCache(CacheNames.ISSUE_DETAIL)).thenReturn(issueDetailCache);
+        when(cacheManager.getCache(CacheNames.PROJECT_SUMMARY)).thenReturn(summaryCache);
+
+        readCacheEviction.evictIssue(issueId, "PROJ-1", projectId, false);
+
+        verify(issueDetailCache).evict(issueId);
+        verify(summaryCache).evict(projectId);
+        verify(cacheManager, never()).getCache(CacheNames.PROJECT_BOARD);
     }
 
     @Test
@@ -67,16 +77,15 @@ class ReadCacheEvictionTest {
     }
 
     @Test
-    void evictProject_clearsIssueListAndBoard() {
+    void evictProject_evictsBoardAndSummaryOnly() {
         UUID projectId = UUID.randomUUID();
         when(cacheManager.getCache(CacheNames.PROJECT_SUMMARY)).thenReturn(summaryCache);
         when(cacheManager.getCache(CacheNames.PROJECT_BOARD)).thenReturn(boardCache);
-        when(cacheManager.getCache(CacheNames.ISSUE_LIST)).thenReturn(issueListCache);
 
         readCacheEviction.evictProject(projectId);
 
         verify(summaryCache).evict(projectId);
         verify(boardCache).evict(projectId);
-        verify(issueListCache).clear();
+        verify(cacheManager, never()).getCache(CacheNames.ISSUE_LIST);
     }
 }

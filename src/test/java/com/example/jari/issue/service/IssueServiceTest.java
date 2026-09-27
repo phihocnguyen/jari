@@ -30,6 +30,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -65,6 +67,8 @@ class IssueServiceTest {
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private ReadCacheEviction readCacheEviction;
     @Mock private IssueHydrationService issueHydrationService;
+    @Mock private IssueKeyAllocator issueKeyAllocator;
+    @Mock private TransactionTemplate transactionTemplate;
 
     @InjectMocks
     private IssueService issueService;
@@ -96,6 +100,11 @@ class IssueServiceTest {
         issue.setStatus(todo);
         issue.setPriority(high);
         issue.setIssueType(story);
+
+        lenient().when(transactionTemplate.execute(any())).thenAnswer(inv -> {
+            TransactionCallback<?> callback = inv.getArgument(0);
+            return callback.doInTransaction(null);
+        });
     }
 
     @Test
@@ -144,7 +153,7 @@ class IssueServiceTest {
 
         when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
         when(userRepository.findById(reporter.getId())).thenReturn(Optional.of(reporter));
-        when(issueRepository.findMaxIssueNumber(projectId)).thenReturn(0);
+        when(issueKeyAllocator.allocateNext(projectId)).thenReturn(1);
         when(issueTypeRepository.findById(typeId)).thenReturn(Optional.of(story));
         when(statusRepository.findById(statusId)).thenReturn(Optional.of(todo));
         when(priorityRepository.findById(priorityId)).thenReturn(Optional.of(high));
@@ -154,14 +163,13 @@ class IssueServiceTest {
             saved.setId(issueId);
             return saved;
         });
-        when(issueHydrationService.hydrateCollections(any(Issue.class))).thenAnswer(inv -> inv.getArgument(0));
         when(mapper.toResponse(any())).thenReturn(IssueResponse.builder().id(issueId).build());
 
         issueService.create(projectId, reporter.getId(), req);
 
         verify(notificationService).notifyIssueAssigned(any(), eq(reporter), eq(assignee));
         verify(eventPublisher).publishEvent(any(Object.class));
-        verify(readCacheEviction).evictIssue(eq(issueId), anyString(), eq(projectId));
+        verify(readCacheEviction).evictIssue(eq(issueId), anyString(), eq(projectId), eq(false));
     }
 
     @Test
@@ -178,12 +186,13 @@ class IssueServiceTest {
             saved.setId(issueId);
             return saved;
         });
-        when(issueHydrationService.hydrateCollections(any(Issue.class))).thenAnswer(inv -> inv.getArgument(0));
         when(mapper.toResponse(any())).thenReturn(IssueResponse.builder().id(issueId).build());
 
         issueService.create(projectId, reporter.getId(), req);
 
-        verify(sprintIssueRepository).save(any(SprintIssue.class));
+        verify(issueRepository, atLeastOnce()).save(any(Issue.class));
+        // SprintIssue is cascaded via Issue.sprintIssues — not saved through SprintIssueRepository
+        verify(sprintIssueRepository, never()).save(any(SprintIssue.class));
     }
 
     @Test
@@ -525,7 +534,7 @@ class IssueServiceTest {
     private void stubCreateDependencies() {
         when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
         when(userRepository.findById(reporter.getId())).thenReturn(Optional.of(reporter));
-        when(issueRepository.findMaxIssueNumber(projectId)).thenReturn(1);
+        when(issueKeyAllocator.allocateNext(projectId)).thenReturn(2);
         when(issueTypeRepository.findById(story.getId())).thenReturn(Optional.of(story));
         when(statusRepository.findById(todo.getId())).thenReturn(Optional.of(todo));
         when(priorityRepository.findById(high.getId())).thenReturn(Optional.of(high));

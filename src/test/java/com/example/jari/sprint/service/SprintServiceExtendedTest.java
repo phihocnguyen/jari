@@ -2,7 +2,6 @@ package com.example.jari.sprint.service;
 
 import com.example.jari.issue.repository.IssueRepository;
 import com.example.jari.issue.repository.StatusRepository;
-import com.example.jari.issue.service.IssueHydrationService;
 import com.example.jari.project.repository.ProjectRepository;
 import com.example.jari.shared.cache.ReadCacheEviction;
 import com.example.jari.sprint.dto.SprintResponse;
@@ -40,7 +39,6 @@ class SprintServiceExtendedTest {
     @Mock private SprintMapper sprintMapper;
     @Mock private IssueMapper issueMapper;
     @Mock private ReadCacheEviction readCacheEviction;
-    @Mock private IssueHydrationService issueHydrationService;
     @InjectMocks private SprintService sprintService;
 
     private UUID sprintId;

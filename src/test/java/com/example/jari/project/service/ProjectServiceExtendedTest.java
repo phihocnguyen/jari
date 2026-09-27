@@ -1,5 +1,6 @@
 package com.example.jari.project.service;
 
+import com.example.jari.issue.service.IssueKeyAllocator;
 import com.example.jari.notification.service.NotificationService;
 import com.example.jari.project.dto.CreateProjectRequest;
 import com.example.jari.project.dto.ProjectResponse;
@@ -45,6 +46,7 @@ class ProjectServiceExtendedTest {
     @Mock private ProjectMapper mapper;
     @Mock private NotificationService notificationService;
     @Mock private ApplicationEventPublisher eventPublisher;
+    @Mock private IssueKeyAllocator issueKeyAllocator;
     @InjectMocks private ProjectService projectService;
 
     private UUID workspaceId;
@@ -68,13 +70,14 @@ class ProjectServiceExtendedTest {
 
         when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
         when(projectRepository.existsByWorkspaceIdAndProjectKey(workspaceId, "APP")).thenReturn(false);
-        when(projectRepository.save(any())).thenReturn(saved);
+        when(projectRepository.saveAndFlush(any())).thenReturn(saved);
         when(userRepository.findById(requesterId)).thenReturn(Optional.of(owner));
         when(mapper.toResponse(saved)).thenReturn(ProjectResponse.builder().id(saved.getId()).build());
 
         projectService.create(workspaceId, requesterId, req);
 
         verify(memberRepository).save(any());
+        verify(issueKeyAllocator).ensureCounterRow(saved.getId());
     }
 
     @Test
@@ -93,7 +96,7 @@ class ProjectServiceExtendedTest {
         when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
         when(projectRepository.existsByWorkspaceIdAndProjectKey(workspaceId, "APP")).thenReturn(false);
         when(userRepository.findById(leadId)).thenReturn(Optional.of(lead));
-        when(projectRepository.save(any())).thenReturn(saved);
+        when(projectRepository.saveAndFlush(any())).thenReturn(saved);
         when(userRepository.findById(requesterId)).thenReturn(Optional.of(owner));
         when(mapper.toResponse(saved)).thenReturn(ProjectResponse.builder().id(saved.getId()).build());
 

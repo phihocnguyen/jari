@@ -1,5 +1,6 @@
 package com.example.jari.project.service;
 
+import com.example.jari.issue.service.IssueKeyAllocator;
 import com.example.jari.notification.service.NotificationService;
 import com.example.jari.project.dto.*;
 import com.example.jari.project.entity.*;
@@ -47,6 +48,7 @@ class ProjectServiceTest {
     @Mock private ProjectMapper mapper;
     @Mock private NotificationService notificationService;
     @Mock private ApplicationEventPublisher eventPublisher;
+    @Mock private IssueKeyAllocator issueKeyAllocator;
 
     @InjectMocks private ProjectService projectService;
 
