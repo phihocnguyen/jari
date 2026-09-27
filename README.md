@@ -565,6 +565,7 @@ xdg-open target/site/jacoco/index.html
 
 ## Resources
 
+- [CONTRIBUTING.md](CONTRIBUTING.md) — git / Conventional Commits conventions
 - [JaCoCo coverage report](target/site/jacoco/index.html) — branch/line coverage (run `./mvnw test` first)
 - [monitoring/README.md](monitoring/README.md) — Grafana, Prometheus, Kibana, cache metrics
 - [k6/.env.example](k6/.env.example) — load test configuration
